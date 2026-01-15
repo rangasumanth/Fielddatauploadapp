@@ -1,0 +1,222 @@
+import { Hono } from "npm:hono";
+import { cors } from "npm:hono/cors";
+import { logger } from "npm:hono/logger";
+import * as kv from "./kv_store.tsx";
+import { createClient } from "npm:@supabase/supabase-js@2";
+const app = new Hono();
+
+// Initialize Supabase client
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+);
+
+// Enable logger
+app.use('*', logger(console.log));
+
+// Enable CORS for all routes and methods
+app.use(
+  "/*",
+  cors({
+    origin: "*",
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+  }),
+);
+
+// Create S3 bucket on startup
+const BUCKET_NAME = 'make-54e4d920-field-videos';
+(async () => {
+  const { data: buckets } = await supabase.storage.listBuckets();
+  const bucketExists = buckets?.some(bucket => bucket.name === BUCKET_NAME);
+  if (!bucketExists) {
+    await supabase.storage.createBucket(BUCKET_NAME, { public: false });
+    console.log(`Created bucket: ${BUCKET_NAME}`);
+  }
+})();
+
+// Health check endpoint
+app.get("/make-server-54e4d920/health", (c) => {
+  return c.json({ status: "ok" });
+});
+
+// Session Management - Store user info
+app.post("/make-server-54e4d920/session", async (c) => {
+  try {
+    const { sessionId, userName, email } = await c.req.json();
+    
+    if (!sessionId || !userName || !email) {
+      return c.json({ error: "sessionId, userName, and email are required" }, 400);
+    }
+
+    await kv.set(`session:${sessionId}`, { userName, email, createdAt: new Date().toISOString() });
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.log(`Error storing session: ${error}`);
+    return c.json({ error: `Failed to store session: ${error}` }, 500);
+  }
+});
+
+// Get session info
+app.get("/make-server-54e4d920/session/:sessionId", async (c) => {
+  try {
+    const sessionId = c.req.param('sessionId');
+    const session = await kv.get(`session:${sessionId}`);
+    
+    if (!session) {
+      return c.json({ error: "Session not found" }, 404);
+    }
+    
+    return c.json(session);
+  } catch (error) {
+    console.log(`Error retrieving session: ${error}`);
+    return c.json({ error: `Failed to retrieve session: ${error}` }, 500);
+  }
+});
+
+// Submit test data
+app.post("/make-server-54e4d920/tests", async (c) => {
+  try {
+    const testData = await c.req.json();
+    
+    if (!testData.testId) {
+      return c.json({ error: "testId is required" }, 400);
+    }
+
+    // Store test metadata
+    await kv.set(`test:${testData.testId}`, {
+      ...testData,
+      createdAt: new Date().toISOString(),
+      status: 'pending'
+    });
+    
+    return c.json({ success: true, testId: testData.testId });
+  } catch (error) {
+    console.log(`Error storing test data: ${error}`);
+    return c.json({ error: `Failed to store test data: ${error}` }, 500);
+  }
+});
+
+// Get test by ID
+app.get("/make-server-54e4d920/tests/:testId", async (c) => {
+  try {
+    const testId = c.req.param('testId');
+    const test = await kv.get(`test:${testId}`);
+    
+    if (!test) {
+      return c.json({ error: "Test not found" }, 404);
+    }
+    
+    return c.json(test);
+  } catch (error) {
+    console.log(`Error retrieving test: ${error}`);
+    return c.json({ error: `Failed to retrieve test: ${error}` }, 500);
+  }
+});
+
+// Get all tests
+app.get("/make-server-54e4d920/tests", async (c) => {
+  try {
+    const tests = await kv.getByPrefix('test:');
+    
+    // Sort by createdAt descending
+    const sortedTests = tests.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+    
+    return c.json({ tests: sortedTests });
+  } catch (error) {
+    console.log(`Error retrieving tests: ${error}`);
+    return c.json({ error: `Failed to retrieve tests: ${error}` }, 500);
+  }
+});
+
+// Upload video to Supabase Storage
+app.post("/make-server-54e4d920/upload-video", async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    const testId = formData.get('testId') as string;
+    
+    if (!file || !testId) {
+      return c.json({ error: "file and testId are required" }, 400);
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+    
+    const fileName = `${testId}-${Date.now()}-${file.name}`;
+    
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (error) {
+      console.log(`Supabase storage error: ${error.message}`);
+      return c.json({ error: `Upload failed: ${error.message}` }, 500);
+    }
+
+    // Generate signed URL (valid for 1 year)
+    const { data: signedUrlData } = await supabase.storage
+      .from(BUCKET_NAME)
+      .createSignedUrl(fileName, 31536000);
+
+    // Update test with video info
+    const test = await kv.get(`test:${testId}`);
+    if (test) {
+      await kv.set(`test:${testId}`, {
+        ...test,
+        videoFileName: fileName,
+        videoUrl: signedUrlData?.signedUrl,
+        videoUploadedAt: new Date().toISOString(),
+        status: 'completed'
+      });
+    }
+
+    return c.json({ 
+      success: true, 
+      fileName,
+      signedUrl: signedUrlData?.signedUrl 
+    });
+  } catch (error) {
+    console.log(`Error uploading video: ${error}`);
+    return c.json({ error: `Failed to upload video: ${error}` }, 500);
+  }
+});
+
+// Delete test
+app.delete("/make-server-54e4d920/tests/:testId", async (c) => {
+  try {
+    const testId = c.req.param('testId');
+    const test = await kv.get(`test:${testId}`);
+    
+    if (!test) {
+      return c.json({ error: "Test not found" }, 404);
+    }
+
+    // Delete video from storage if exists
+    if (test.videoFileName) {
+      await supabase.storage
+        .from(BUCKET_NAME)
+        .remove([test.videoFileName]);
+    }
+
+    // Delete test metadata
+    await kv.del(`test:${testId}`);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.log(`Error deleting test: ${error}`);
+    return c.json({ error: `Failed to delete test: ${error}` }, 500);
+  }
+});
+
+Deno.serve(app.fetch);

@@ -1,0 +1,498 @@
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Switch } from '@/app/components/ui/switch';
+import { Separator } from '@/app/components/ui/separator';
+import { toast } from 'sonner';
+import { ArrowLeft, Save } from 'lucide-react';
+import type { UserInfo, GeoLocation, MetadataForm } from '@/app/App';
+
+type MetadataFormScreenProps = {
+  userInfo: UserInfo;
+  geoLocation: GeoLocation;
+  onSubmit: (metadata: MetadataForm) => void;
+  onBack: () => void;
+};
+
+export function MetadataFormScreen({ userInfo, geoLocation, onSubmit, onBack }: MetadataFormScreenProps) {
+  const [formData, setFormData] = useState<MetadataForm>({
+    date: new Date().toISOString().split('T')[0],
+    deviceId: '',
+    deviceType: '',
+    testCycle: '',
+    location: '',
+    environment: '',
+    timeStart: '',
+    timeEnd: '',
+    roadType: '',
+    postedSpeedLimit: '',
+    numberOfLanes: '',
+    trafficDensity: '',
+    roadHeading: '',
+    cameraHeading: '',
+    lighting: '',
+    weatherCondition: '',
+    severity: '',
+    measuredDistance: '',
+    mountHeight: '',
+    pitchAngle: '',
+    vehicleCaptureView: '',
+    externalBatteryPluggedIn: false,
+    firmware: '',
+    varVersion: ''
+  });
+
+  const handleInputChange = (field: keyof MetadataForm, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    const requiredFields = ['deviceId', 'deviceType', 'testCycle', 'environment', 'roadType'];
+    const missingFields = requiredFields.filter(field => !formData[field as keyof MetadataForm]);
+    
+    if (missingFields.length > 0) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    onSubmit(formData);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={onBack}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Metadata Entry</h1>
+                <p className="text-sm text-gray-500">{userInfo.userName}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+                <CardDescription>Core test identification details</CardDescription>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date *</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => handleInputChange('date', e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Field Tester</Label>
+                  <Input value={userInfo.userName} readOnly className="bg-gray-50" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deviceId">Device ID *</Label>
+                  <Input
+                    id="deviceId"
+                    value={formData.deviceId}
+                    onChange={(e) => handleInputChange('deviceId', e.target.value)}
+                    placeholder="e.g., CAM-001"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deviceType">Device Type *</Label>
+                  <Input
+                    id="deviceType"
+                    value={formData.deviceType}
+                    onChange={(e) => handleInputChange('deviceType', e.target.value)}
+                    placeholder="e.g., HD Camera X200"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="testCycle">Test Cycle *</Label>
+                  <Input
+                    id="testCycle"
+                    value={formData.testCycle}
+                    onChange={(e) => handleInputChange('testCycle', e.target.value)}
+                    placeholder="e.g., Winter 2026 - Phase 1"
+                    required
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Location Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Location Details</CardTitle>
+                <CardDescription>Geographic and site information</CardDescription>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>City (locked)</Label>
+                  <Input value={geoLocation.city} readOnly className="bg-gray-100" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>State Collected (locked)</Label>
+                  <Input value={geoLocation.state} readOnly className="bg-gray-100" />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="location">Location / Landmark</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    placeholder="e.g., Main St & 5th Ave intersection"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="environment">Environment *</Label>
+                  <Select value={formData.environment} onValueChange={(value) => handleInputChange('environment', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select environment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="urban">Urban</SelectItem>
+                      <SelectItem value="suburban">Suburban</SelectItem>
+                      <SelectItem value="rural">Rural</SelectItem>
+                      <SelectItem value="highway">Highway</SelectItem>
+                      <SelectItem value="residential">Residential</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Time */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Time</CardTitle>
+                <CardDescription>Test duration information</CardDescription>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="timeStart">Time Start</Label>
+                  <Input
+                    id="timeStart"
+                    type="time"
+                    value={formData.timeStart}
+                    onChange={(e) => handleInputChange('timeStart', e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="timeEnd">Time End</Label>
+                  <Input
+                    id="timeEnd"
+                    type="time"
+                    value={formData.timeEnd}
+                    onChange={(e) => handleInputChange('timeEnd', e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Road & Traffic */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Road & Traffic</CardTitle>
+                <CardDescription>Road configuration and traffic conditions</CardDescription>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="roadType">Road Type *</Label>
+                  <Select value={formData.roadType} onValueChange={(value) => handleInputChange('roadType', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select road type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="local">Local Street</SelectItem>
+                      <SelectItem value="arterial">Arterial</SelectItem>
+                      <SelectItem value="highway">Highway</SelectItem>
+                      <SelectItem value="freeway">Freeway</SelectItem>
+                      <SelectItem value="collector">Collector</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="postedSpeedLimit">Posted Speed Limit (mph)</Label>
+                  <Input
+                    id="postedSpeedLimit"
+                    type="number"
+                    value={formData.postedSpeedLimit}
+                    onChange={(e) => handleInputChange('postedSpeedLimit', e.target.value)}
+                    placeholder="e.g., 35"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="numberOfLanes">Number of Lanes Counted</Label>
+                  <Input
+                    id="numberOfLanes"
+                    type="number"
+                    value={formData.numberOfLanes}
+                    onChange={(e) => handleInputChange('numberOfLanes', e.target.value)}
+                    placeholder="e.g., 2"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="trafficDensity">Traffic Density</Label>
+                  <Select value={formData.trafficDensity} onValueChange={(value) => handleInputChange('trafficDensity', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select density" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="moderate">Moderate</SelectItem>
+                      <SelectItem value="heavy">Heavy</SelectItem>
+                      <SelectItem value="congested">Congested</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="roadHeading">Road Heading</Label>
+                  <Select value={formData.roadHeading} onValueChange={(value) => handleInputChange('roadHeading', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select heading" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="north">North</SelectItem>
+                      <SelectItem value="south">South</SelectItem>
+                      <SelectItem value="east">East</SelectItem>
+                      <SelectItem value="west">West</SelectItem>
+                      <SelectItem value="northeast">Northeast</SelectItem>
+                      <SelectItem value="northwest">Northwest</SelectItem>
+                      <SelectItem value="southeast">Southeast</SelectItem>
+                      <SelectItem value="southwest">Southwest</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cameraHeading">Camera Heading</Label>
+                  <Select value={formData.cameraHeading} onValueChange={(value) => handleInputChange('cameraHeading', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select heading" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="north">North</SelectItem>
+                      <SelectItem value="south">South</SelectItem>
+                      <SelectItem value="east">East</SelectItem>
+                      <SelectItem value="west">West</SelectItem>
+                      <SelectItem value="northeast">Northeast</SelectItem>
+                      <SelectItem value="northwest">Northwest</SelectItem>
+                      <SelectItem value="southeast">Southeast</SelectItem>
+                      <SelectItem value="southwest">Southwest</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Conditions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Conditions</CardTitle>
+                <CardDescription>Environmental and weather conditions</CardDescription>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="lighting">Lighting</Label>
+                  <Select value={formData.lighting} onValueChange={(value) => handleInputChange('lighting', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select lighting" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daylight">Daylight</SelectItem>
+                      <SelectItem value="dusk">Dusk</SelectItem>
+                      <SelectItem value="dawn">Dawn</SelectItem>
+                      <SelectItem value="night">Night</SelectItem>
+                      <SelectItem value="overcast">Overcast</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="weatherCondition">Weather Condition</Label>
+                  <Select value={formData.weatherCondition} onValueChange={(value) => handleInputChange('weatherCondition', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select weather" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="clear">Clear</SelectItem>
+                      <SelectItem value="cloudy">Cloudy</SelectItem>
+                      <SelectItem value="rain">Rain</SelectItem>
+                      <SelectItem value="snow">Snow</SelectItem>
+                      <SelectItem value="fog">Fog</SelectItem>
+                      <SelectItem value="sleet">Sleet</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="severity">Severity</Label>
+                  <Select value={formData.severity} onValueChange={(value) => handleInputChange('severity', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select severity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="moderate">Moderate</SelectItem>
+                      <SelectItem value="heavy">Heavy</SelectItem>
+                      <SelectItem value="severe">Severe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Camera & Setup */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Camera & Setup</CardTitle>
+                <CardDescription>Physical camera installation details</CardDescription>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="measuredDistance">Measured Distance to Road (m)</Label>
+                  <Input
+                    id="measuredDistance"
+                    type="number"
+                    step="0.1"
+                    value={formData.measuredDistance}
+                    onChange={(e) => handleInputChange('measuredDistance', e.target.value)}
+                    placeholder="e.g., 15.5"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mountHeight">Mount Height (m)</Label>
+                  <Input
+                    id="mountHeight"
+                    type="number"
+                    step="0.1"
+                    value={formData.mountHeight}
+                    onChange={(e) => handleInputChange('mountHeight', e.target.value)}
+                    placeholder="e.g., 3.2"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pitchAngle">Pitch Angle (degrees)</Label>
+                  <Input
+                    id="pitchAngle"
+                    type="number"
+                    step="0.1"
+                    value={formData.pitchAngle}
+                    onChange={(e) => handleInputChange('pitchAngle', e.target.value)}
+                    placeholder="e.g., 25.0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="vehicleCaptureView">Vehicle Capture View</Label>
+                  <Select value={formData.vehicleCaptureView} onValueChange={(value) => handleInputChange('vehicleCaptureView', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select view" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="front">Front</SelectItem>
+                      <SelectItem value="rear">Rear</SelectItem>
+                      <SelectItem value="side">Side</SelectItem>
+                      <SelectItem value="overhead">Overhead</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <Label htmlFor="externalBattery">External Battery Plugged In</Label>
+                      <p className="text-sm text-gray-500">Is external power connected?</p>
+                    </div>
+                    <Switch
+                      id="externalBattery"
+                      checked={formData.externalBatteryPluggedIn}
+                      onCheckedChange={(checked) => handleInputChange('externalBatteryPluggedIn', checked)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* System Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>System Information</CardTitle>
+                <CardDescription>Software and firmware versions</CardDescription>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firmware">Firmware</Label>
+                  <Input
+                    id="firmware"
+                    value={formData.firmware}
+                    onChange={(e) => handleInputChange('firmware', e.target.value)}
+                    placeholder="e.g., v2.1.5"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="varVersion">VAR Version</Label>
+                  <Input
+                    id="varVersion"
+                    value={formData.varVersion}
+                    onChange={(e) => handleInputChange('varVersion', e.target.value)}
+                    placeholder="e.g., VAR-3.0.2"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Submit Buttons */}
+            <div className="flex gap-3 justify-end sticky bottom-0 bg-white p-4 border-t">
+              <Button type="button" variant="outline" onClick={onBack}>
+                Back
+              </Button>
+              <Button type="submit" className="flex items-center gap-2">
+                <Save className="w-4 h-4" />
+                Save & Continue
+              </Button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

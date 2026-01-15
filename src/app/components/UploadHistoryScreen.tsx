@@ -5,15 +5,16 @@ import { Badge } from '@/app/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo, Upload } from 'lucide-react';
+import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo, Upload, Pencil } from 'lucide-react';
 import type { UserInfo, TestData } from '@/app/App';
 
 type UploadHistoryScreenProps = {
   userInfo: UserInfo;
+  onEditMetadata: (test: TestData) => void;
   onBack: () => void;
 };
 
-export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenProps) {
+export function UploadHistoryScreen({ userInfo, onEditMetadata, onBack }: UploadHistoryScreenProps) {
   const [tests, setTests] = useState<TestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTest, setSelectedTest] = useState<TestData | null>(null);
@@ -101,8 +102,8 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
   };
 
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !pendingUploadTestId) {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0 || !pendingUploadTestId) {
       return;
     }
 
@@ -113,27 +114,29 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
         throw new Error('Missing Supabase URL');
       }
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('testId', pendingUploadTestId);
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('testId', pendingUploadTestId);
 
-      const uploadResponse = await fetch(
-        `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`
-          },
-          body: formData
+        const uploadResponse = await fetch(
+          `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${publicAnonKey}`
+            },
+            body: formData
+          }
+        );
+
+        if (!uploadResponse.ok) {
+          const error = await uploadResponse.json();
+          throw new Error(error.error || 'Failed to upload video');
         }
-      );
-
-      if (!uploadResponse.ok) {
-        const error = await uploadResponse.json();
-        throw new Error(error.error || 'Failed to upload video');
       }
 
-      toast.success('Video uploaded successfully');
+      toast.success('Video upload completed');
       loadTests();
     } catch (error) {
       console.error('Error uploading video:', error);
@@ -213,7 +216,8 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
                   </TableHeader>
                   <TableBody>
                     {tests.map((test) => {
-                      const hasVideo = Boolean(test.videoUrl || test.videoFileName || test.metadata?.videoFileName);
+                      const videoCount = test.videos?.length || (test.videoFileName || test.videoUrl ? 1 : 0);
+                      const hasVideo = videoCount > 0;
                       return (
                       <TableRow key={test.testId}>
                         <TableCell className="font-medium">
@@ -227,7 +231,7 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
                           }
                         </TableCell>
                         <TableCell className="truncate max-w-xs">
-                          {test.videoFileName || test.metadata?.videoFileName || 'N/A'}
+                          {hasVideo ? `${videoCount} video${videoCount > 1 ? 's' : ''}` : 'N/A'}
                         </TableCell>
                         <TableCell>{test.userInfo?.userName || 'Unknown'}</TableCell>
                         <TableCell>
@@ -247,21 +251,27 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            {!hasVideo && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleStartUpload(test.testId)}
-                                title="Upload Video"
-                                disabled={uploadingTestId === test.testId}
-                              >
-                                {uploadingTestId === test.testId ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Upload className="w-4 h-4" />
-                                )}
-                              </Button>
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEditMetadata(test)}
+                              title="Edit Metadata"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleStartUpload(test.testId)}
+                              title="Upload Video"
+                              disabled={uploadingTestId === test.testId}
+                            >
+                              {uploadingTestId === test.testId ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Upload className="w-4 h-4" />
+                              )}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -369,22 +379,43 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
               <div>
                 <h3 className="font-semibold mb-2">Video Information</h3>
                 <div className="space-y-2 text-sm">
-                  <div>
-                    <p className="text-gray-500">File Name</p>
-                    <p className="font-medium break-all">{selectedTest.videoFileName || 'N/A'}</p>
-                  </div>
-                  {selectedTest.videoUrl && (
+                  {selectedTest.videos && selectedTest.videos.length > 0 ? (
+                    selectedTest.videos.map((video, index) => (
+                      <div key={`${video.fileName}-${index}`}>
+                        <p className="text-gray-500">Video {index + 1}</p>
+                        <p className="font-medium break-all">{video.fileName}</p>
+                        {video.url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(video.url, '_blank')}
+                            className="w-full mt-2"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Open Video
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  ) : selectedTest.videoFileName || selectedTest.videoUrl ? (
                     <div>
-                      <p className="text-gray-500 mb-1">Video URL</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(selectedTest.videoUrl, '_blank')}
-                        className="w-full"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Open Video
-                      </Button>
+                      <p className="text-gray-500">Video</p>
+                      <p className="font-medium break-all">{selectedTest.videoFileName || 'Video file'}</p>
+                      {selectedTest.videoUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(selectedTest.videoUrl, '_blank')}
+                          className="w-full mt-2"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Open Video
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-gray-500">No videos uploaded</p>
                     </div>
                   )}
                 </div>
@@ -413,6 +444,7 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
         ref={uploadInputRef}
         type="file"
         accept="video/*"
+        multiple
         onChange={handleUploadFile}
         className="hidden"
       />

@@ -54,10 +54,17 @@ export type TestData = {
   userInfo: UserInfo;
   geoLocation: GeoLocation;
   metadata: MetadataForm;
-  videoFile?: File;
+  videos?: {
+    fileName: string;
+    url?: string;
+    size?: number;
+    type?: string;
+    uploadedAt?: string;
+  }[];
   videoUrl?: string;
   status?: string;
   createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Screen = 
@@ -75,8 +82,9 @@ export default function App() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [geoLocation, setGeoLocation] = useState<GeoLocation | null>(null);
   const [metadata, setMetadata] = useState<MetadataForm | null>(null);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoFiles, setVideoFiles] = useState<File[]>([]);
   const [currentTestId, setCurrentTestId] = useState<string>('');
+  const [isEditingExisting, setIsEditingExisting] = useState(false);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -126,7 +134,8 @@ export default function App() {
     setCurrentTestId(testId);
     setGeoLocation(null);
     setMetadata(null);
-    setVideoFile(null);
+    setVideoFiles([]);
+    setIsEditingExisting(false);
     setCurrentScreen('geo-location');
   };
 
@@ -135,13 +144,39 @@ export default function App() {
     setCurrentScreen('metadata-form');
   };
 
-  const handleMetadataSubmit = (formData: MetadataForm) => {
+  const handleMetadataSubmit = async (formData: MetadataForm) => {
     setMetadata(formData);
+    if (isEditingExisting) {
+      try {
+        const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+        if (!supabaseUrl) {
+          throw new Error('Missing Supabase URL');
+        }
+        const response = await fetch(`${supabaseUrl}/functions/v1/make-server-54e4d920/tests/${currentTestId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`
+          },
+          body: JSON.stringify({ metadata: formData })
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to update metadata');
+        }
+      } catch (error) {
+        console.error('Error updating metadata:', error);
+      } finally {
+        setIsEditingExisting(false);
+        setCurrentScreen('upload-history');
+      }
+      return;
+    }
     setCurrentScreen('video-upload');
   };
 
-  const handleVideoUpload = (file: File | null) => {
-    setVideoFile(file);
+  const handleVideoUpload = (files: File[]) => {
+    setVideoFiles(files);
     setCurrentScreen('review-submit');
   };
 
@@ -157,8 +192,9 @@ export default function App() {
     // Clear current test data
     setGeoLocation(null);
     setMetadata(null);
-    setVideoFile(null);
+    setVideoFiles([]);
     setCurrentTestId('');
+    setIsEditingExisting(false);
     setCurrentScreen('dashboard');
   };
 
@@ -194,13 +230,13 @@ export default function App() {
           metadata={metadata}
           onSubmit={handleMetadataSubmit}
           onDraftChange={(draft) => setMetadata(draft)}
-          onBack={() => setCurrentScreen('geo-location')}
+          onBack={() => setCurrentScreen(isEditingExisting ? 'upload-history' : 'geo-location')}
         />
       )}
 
       {currentScreen === 'video-upload' && (
         <VideoUploadScreen
-          videoFile={videoFile}
+          videoFiles={videoFiles}
           onUpload={handleVideoUpload}
           onBack={() => setCurrentScreen('metadata-form')}
         />
@@ -212,7 +248,7 @@ export default function App() {
           userInfo={userInfo}
           geoLocation={geoLocation}
           metadata={metadata}
-          videoFile={videoFile}
+          videoFiles={videoFiles}
           onSubmitComplete={handleSubmitComplete}
           onBack={() => setCurrentScreen('video-upload')}
           onEditMetadata={() => setCurrentScreen('metadata-form')}
@@ -222,6 +258,15 @@ export default function App() {
       {currentScreen === 'upload-history' && userInfo && (
         <UploadHistoryScreen
           userInfo={userInfo}
+          onEditMetadata={(test) => {
+            setCurrentTestId(test.testId);
+            setUserInfo(test.userInfo);
+            setGeoLocation(test.geoLocation);
+            setMetadata(test.metadata);
+            setVideoFiles([]);
+            setIsEditingExisting(true);
+            setCurrentScreen('metadata-form');
+          }}
           onBack={handleBackToDashboard}
         />
       )}

@@ -155,17 +155,56 @@ app.post("/make-server-54e4d920/tests", async (c) => {
       return c.json({ error: "testId is required" }, 400);
     }
 
+    const existingTest = await kv.get(`test:${testData.testId}`);
+    const now = new Date().toISOString();
+    const existingVideos = Array.isArray(existingTest?.videos) ? existingTest.videos : [];
+    const mergedVideos = Array.isArray(testData.videos) ? testData.videos : existingVideos;
+
     // Store test metadata
     await kv.set(`test:${testData.testId}`, {
+      ...existingTest,
       ...testData,
-      createdAt: new Date().toISOString(),
-      status: 'pending'
+      testId: testData.testId,
+      videos: mergedVideos,
+      videoFileName: testData.videoFileName ?? existingTest?.videoFileName,
+      videoUrl: testData.videoUrl ?? existingTest?.videoUrl,
+      status: testData.status ?? existingTest?.status ?? 'pending',
+      createdAt: existingTest?.createdAt ?? now,
+      updatedAt: now
     });
     
     return c.json({ success: true, testId: testData.testId });
   } catch (error) {
     console.log(`Error storing test data: ${error}`);
     return c.json({ error: `Failed to store test data: ${error}` }, 500);
+  }
+});
+
+// Update test metadata
+app.put("/make-server-54e4d920/tests/:testId", async (c) => {
+  try {
+    const testId = c.req.param('testId');
+    const updates = await c.req.json();
+    const test = await kv.get(`test:${testId}`);
+
+    if (!test) {
+      return c.json({ error: "Test not found" }, 404);
+    }
+
+    const now = new Date().toISOString();
+    const merged = {
+      ...test,
+      ...updates,
+      testId,
+      metadata: updates.metadata ?? test.metadata,
+      updatedAt: now
+    };
+
+    await kv.set(`test:${testId}`, merged);
+    return c.json({ success: true, testId });
+  } catch (error) {
+    console.log(`Error updating test: ${error}`);
+    return c.json({ error: `Failed to update test: ${error}` }, 500);
   }
 });
 
@@ -219,6 +258,7 @@ app.post("/make-server-54e4d920/upload-video", async (c) => {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
     
+    const now = new Date().toISOString();
     const fileName = `${testId}-${Date.now()}-${file.name}`;
     
     const { data, error } = await supabase.storage
@@ -240,15 +280,28 @@ app.post("/make-server-54e4d920/upload-video", async (c) => {
 
     // Update test with video info
     const test = await kv.get(`test:${testId}`);
-    if (test) {
-      await kv.set(`test:${testId}`, {
-        ...test,
-        videoFileName: fileName,
-        videoUrl: signedUrlData?.signedUrl,
-        videoUploadedAt: new Date().toISOString(),
-        status: 'completed'
-      });
+    if (!test) {
+      return c.json({ error: "Test not found" }, 404);
     }
+
+    const existingVideos = Array.isArray(test.videos) ? test.videos : [];
+    const nextVideo = {
+      fileName,
+      url: signedUrlData?.signedUrl,
+      size: file.size,
+      type: file.type,
+      uploadedAt: now
+    };
+
+    await kv.set(`test:${testId}`, {
+      ...test,
+      videos: [...existingVideos, nextVideo],
+      videoFileName: fileName,
+      videoUrl: signedUrlData?.signedUrl,
+      videoUploadedAt: now,
+      status: 'completed',
+      updatedAt: now
+    });
 
     return c.json({ 
       success: true, 
@@ -271,11 +324,22 @@ app.delete("/make-server-54e4d920/tests/:testId", async (c) => {
       return c.json({ error: "Test not found" }, 404);
     }
 
-    // Delete video from storage if exists
+    // Delete videos from storage if exist
+    const filesToDelete = new Set<string>();
     if (test.videoFileName) {
+      filesToDelete.add(test.videoFileName);
+    }
+    if (Array.isArray(test.videos)) {
+      test.videos.forEach((video: { fileName?: string }) => {
+        if (video?.fileName) {
+          filesToDelete.add(video.fileName);
+        }
+      });
+    }
+    if (filesToDelete.size > 0) {
       await supabase.storage
         .from(BUCKET_NAME)
-        .remove([test.videoFileName]);
+        .remove(Array.from(filesToDelete));
     }
 
     // Delete test metadata

@@ -1,25 +1,22 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { Progress } from '@/app/components/ui/progress';
 import { toast } from 'sonner';
 import { Upload, FileVideo, ArrowLeft, Check, X } from 'lucide-react';
 
 type VideoUploadScreenProps = {
-  videoFile?: File | null;
-  onUpload: (file: File | null) => void;
+  videoFiles?: File[];
+  onUpload: (files: File[]) => void;
   onBack: () => void;
 };
 
-export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadScreenProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+export function VideoUploadScreen({ videoFiles, onUpload, onBack }: VideoUploadScreenProps) {
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
-    if (videoFile) {
-      setSelectedFile(videoFile);
-    }
-  }, [videoFile]);
+    setSelectedFiles(videoFiles ?? []);
+  }, [videoFiles]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -43,12 +40,11 @@ export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadSc
     e.stopPropagation();
     setIsDragging(false);
 
-    const files = Array.from(e.dataTransfer.files);
-    const videoFile = files.find(file => file.type.startsWith('video/'));
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('video/'));
 
-    if (videoFile) {
-      setSelectedFile(videoFile);
-      toast.success('Video file selected');
+    if (files.length > 0) {
+      setSelectedFiles(files);
+      toast.success(`${files.length} video file${files.length > 1 ? 's' : ''} selected`);
     } else {
       toast.error('Please drop a valid video file');
     }
@@ -57,32 +53,32 @@ export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadSc
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('video/')) {
-        setSelectedFile(file);
-        toast.success('Video file selected');
+      const videoFiles = Array.from(files).filter(file => file.type.startsWith('video/'));
+      if (videoFiles.length > 0) {
+        setSelectedFiles(videoFiles);
+        toast.success(`${videoFiles.length} video file${videoFiles.length > 1 ? 's' : ''} selected`);
       } else {
         toast.error('Please select a valid video file');
       }
     }
   };
 
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     toast.info('Video file removed');
   };
 
   const handleContinue = () => {
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       toast.error('Please select a video file');
       return;
     }
 
-    onUpload(selectedFile);
+    onUpload(selectedFiles);
   };
 
   const handleSkip = () => {
-    onUpload(null);
+    onUpload([]);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -125,7 +121,7 @@ export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadSc
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {!selectedFile ? (
+            {selectedFiles.length === 0 ? (
               <>
                 {/* Drag and Drop Area */}
                 <div
@@ -165,6 +161,7 @@ export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadSc
                         id="file-upload"
                         type="file"
                         accept="video/*"
+                        multiple
                         onChange={handleFileSelect}
                         className="hidden"
                       />
@@ -180,39 +177,43 @@ export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadSc
               <>
                 {/* File Preview */}
                 <div className="border rounded-lg p-6 bg-gray-50">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <FileVideo className="w-8 h-8 text-blue-600" />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-900 truncate">
-                            {selectedFile.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {formatFileSize(selectedFile.size)} • {selectedFile.type}
-                          </p>
+                  <div className="space-y-4">
+                    {selectedFiles.map((file, index) => (
+                      <div className="flex items-start gap-4" key={`${file.name}-${index}`}>
+                        <div className="p-3 bg-blue-100 rounded-lg">
+                          <FileVideo className="w-8 h-8 text-blue-600" />
                         </div>
                         
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleRemoveFile}
-                          className="flex-shrink-0"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-medium text-gray-900 truncate">
+                                {file.name}
+                              </h3>
+                              <p className="text-sm text-gray-500 mt-1">
+                                {formatFileSize(file.size)} - {file.type}
+                              </p>
+                            </div>
+                            
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveFile(index)}
+                              className="flex-shrink-0"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
 
-                      <div className="mt-4">
-                        <div className="flex items-center gap-2 text-sm text-green-600">
-                          <Check className="w-4 h-4" />
-                          <span>File ready for upload</span>
+                          <div className="mt-4">
+                            <div className="flex items-center gap-2 text-sm text-green-600">
+                              <Check className="w-4 h-4" />
+                              <span>File ready for upload</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
 
@@ -239,6 +240,7 @@ export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadSc
                     id="file-change"
                     type="file"
                     accept="video/*"
+                    multiple
                     onChange={handleFileSelect}
                     className="hidden"
                   />
@@ -256,7 +258,7 @@ export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadSc
               </Button>
               <Button
                 onClick={handleContinue}
-                disabled={!selectedFile}
+                disabled={selectedFiles.length === 0}
                 className="flex items-center gap-2"
               >
                 <Check className="w-4 h-4" />

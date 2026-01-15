@@ -13,7 +13,7 @@ type ReviewSubmitScreenProps = {
   userInfo: UserInfo;
   geoLocation: GeoLocation;
   metadata: MetadataForm;
-  videoFile: File | null;
+  videoFiles: File[];
   onSubmitComplete: () => void;
   onBack: () => void;
   onEditMetadata: () => void;
@@ -24,7 +24,7 @@ export function ReviewSubmitScreen({
   userInfo,
   geoLocation,
   metadata,
-  videoFile,
+  videoFiles,
   onSubmitComplete,
   onBack,
   onEditMetadata
@@ -51,14 +51,7 @@ export function ReviewSubmitScreen({
         testId,
         userInfo,
         geoLocation,
-        metadata,
-        ...(videoFile
-          ? {
-              videoFileName: videoFile.name,
-              videoSize: videoFile.size,
-              videoType: videoFile.type
-            }
-          : {})
+        metadata
       };
 
       const metadataResponse = await fetch(
@@ -80,33 +73,37 @@ export function ReviewSubmitScreen({
 
       setUploadProgress(40);
 
-      if (videoFile) {
-        // Step 2: Upload video
-        setCurrentStep('Uploading video to S3...');
-        
-        const formData = new FormData();
-        formData.append('file', videoFile);
-        formData.append('testId', testId);
+      if (videoFiles.length > 0) {
+        const totalUploads = videoFiles.length;
+        for (let i = 0; i < videoFiles.length; i += 1) {
+          const file = videoFiles[i];
+          setCurrentStep(`Uploading video ${i + 1} of ${totalUploads}...`);
+          
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('testId', testId);
 
-        const uploadResponse = await fetch(
-          `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${publicAnonKey}`
-            },
-            body: formData
+          const uploadResponse = await fetch(
+            `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${publicAnonKey}`
+              },
+              body: formData
+            }
+          );
+
+          const progress = 40 + Math.round(((i + 1) / totalUploads) * 40);
+          setUploadProgress(progress);
+
+          if (!uploadResponse.ok) {
+            const error = await uploadResponse.json();
+            throw new Error(error.error || 'Failed to upload video');
           }
-        );
 
-        setUploadProgress(80);
-
-        if (!uploadResponse.ok) {
-          const error = await uploadResponse.json();
-          throw new Error(error.error || 'Failed to upload video');
+          await uploadResponse.json();
         }
-
-        await uploadResponse.json();
       }
       
       setCurrentStep('Finalizing submission...');
@@ -290,20 +287,15 @@ export function ReviewSubmitScreen({
                 Video Details
               </CardTitle>
             </CardHeader>
-            {videoFile ? (
+            {videoFiles.length > 0 ? (
               <CardContent className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">File Name</p>
-                  <p className="font-medium truncate">{videoFile.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">File Size</p>
-                  <p className="font-medium">{formatFileSize(videoFile.size)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">File Type</p>
-                  <p className="font-medium">{videoFile.type}</p>
-                </div>
+                {videoFiles.map((file, index) => (
+                  <div key={`${file.name}-${index}`}>
+                    <p className="text-sm text-gray-500">File</p>
+                    <p className="font-medium truncate">{file.name}</p>
+                    <p className="text-xs text-gray-400">{formatFileSize(file.size)} - {file.type}</p>
+                  </div>
+                ))}
               </CardContent>
             ) : (
               <CardContent>

@@ -190,6 +190,7 @@ export default function App() {
           geoLocation={geoLocation}
           metadata={metadata}
           onSubmit={handleMetadataSubmit}
+          onDraftChange={(draft) => setMetadata(draft)}
           onBack={() => setCurrentScreen('geo-location')}
         />
       )}

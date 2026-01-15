@@ -15,6 +15,7 @@ type MetadataFormScreenProps = {
   geoLocation: GeoLocation;
   metadata?: MetadataForm | null;
   onSubmit: (metadata: MetadataForm) => void;
+  onDraftChange?: (metadata: MetadataForm) => void;
   onBack: () => void;
 };
 
@@ -45,7 +46,7 @@ const buildEmptyMetadata = (): MetadataForm => ({
   varVersion: ''
 });
 
-export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, onBack }: MetadataFormScreenProps) {
+export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, onDraftChange, onBack }: MetadataFormScreenProps) {
   const [formData, setFormData] = useState<MetadataForm>(() => metadata ?? buildEmptyMetadata());
 
   useEffect(() => {
@@ -53,7 +54,11 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
   }, [metadata]);
 
   const handleInputChange = (field: keyof MetadataForm, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      onDraftChange?.(next);
+      return next;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -273,11 +273,14 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
                       <SelectValue placeholder="Select road type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="local">Local Street</SelectItem>
-                      <SelectItem value="arterial">Arterial</SelectItem>
-                      <SelectItem value="highway">Highway</SelectItem>
-                      <SelectItem value="freeway">Freeway</SelectItem>
-                      <SelectItem value="collector">Collector</SelectItem>
+                      <SelectItem value="2_local">2-Lane Roadway</SelectItem>
+                      <SelectItem value="3_local">3-lane Roadway</SelectItem>
+                      <SelectItem value="arterial">Multilane Arterial</SelectItem>
+                      <SelectItem value="freeway">Multilane Freeway</SelectItem>
+                      <SelectItem value="intersection">Intersection</SelectItem>
+                      <SelectItem value="2_highway">2-Lane Highway</SelectItem>
+                      <SelectItem value="3_highway">3-Lane Highway</SelectItem>
+                      <SelectItem value="parking lot">Parking lot</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

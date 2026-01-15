@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -13,37 +13,44 @@ import type { UserInfo, GeoLocation, MetadataForm } from '@/app/App';
 type MetadataFormScreenProps = {
   userInfo: UserInfo;
   geoLocation: GeoLocation;
+  metadata?: MetadataForm | null;
   onSubmit: (metadata: MetadataForm) => void;
   onBack: () => void;
 };
 
-export function MetadataFormScreen({ userInfo, geoLocation, onSubmit, onBack }: MetadataFormScreenProps) {
-  const [formData, setFormData] = useState<MetadataForm>({
-    date: new Date().toISOString().split('T')[0],
-    deviceId: '',
-    deviceType: '',
-    testCycle: '',
-    location: '',
-    environment: '',
-    timeStart: '',
-    timeEnd: '',
-    roadType: '',
-    postedSpeedLimit: '',
-    numberOfLanes: '',
-    trafficDensity: '',
-    roadHeading: '',
-    cameraHeading: '',
-    lighting: '',
-    weatherCondition: '',
-    severity: '',
-    measuredDistance: '',
-    mountHeight: '',
-    pitchAngle: '',
-    vehicleCaptureView: '',
-    externalBatteryPluggedIn: false,
-    firmware: '',
-    varVersion: ''
-  });
+const buildEmptyMetadata = (): MetadataForm => ({
+  date: new Date().toISOString().split('T')[0],
+  deviceId: '',
+  deviceType: '',
+  testCycle: '',
+  location: '',
+  environment: '',
+  timeStart: '',
+  timeEnd: '',
+  roadType: '',
+  postedSpeedLimit: '',
+  numberOfLanes: '',
+  trafficDensity: '',
+  roadHeading: '',
+  cameraHeading: '',
+  lighting: '',
+  weatherCondition: '',
+  severity: '',
+  measuredDistance: '',
+  mountHeight: '',
+  pitchAngle: '',
+  vehicleCaptureView: '',
+  externalBatteryPluggedIn: false,
+  firmware: '',
+  varVersion: ''
+});
+
+export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, onBack }: MetadataFormScreenProps) {
+  const [formData, setFormData] = useState<MetadataForm>(() => metadata ?? buildEmptyMetadata());
+
+  useEffect(() => {
+    setFormData(metadata ?? buildEmptyMetadata());
+  }, [metadata]);
 
   const handleInputChange = (field: keyof MetadataForm, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));

@@ -188,6 +188,7 @@ export default function App() {
         <MetadataFormScreen
           userInfo={userInfo}
           geoLocation={geoLocation}
+          metadata={metadata}
           onSubmit={handleMetadataSubmit}
           onBack={() => setCurrentScreen('geo-location')}
         />

@@ -321,40 +321,22 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
 
                 <div className="space-y-2">
                   <Label htmlFor="roadHeading">Road Heading</Label>
-                  <Select value={formData.roadHeading} onValueChange={(value) => handleInputChange('roadHeading', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select heading" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="north">North</SelectItem>
-                      <SelectItem value="south">South</SelectItem>
-                      <SelectItem value="east">East</SelectItem>
-                      <SelectItem value="west">West</SelectItem>
-                      <SelectItem value="northeast">Northeast</SelectItem>
-                      <SelectItem value="northwest">Northwest</SelectItem>
-                      <SelectItem value="southeast">Southeast</SelectItem>
-                      <SelectItem value="southwest">Southwest</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="roadHeading"
+                    value={formData.roadHeading}
+                    onChange={(e) => handleInputChange('roadHeading', e.target.value)}
+                    placeholder="e.g., northbound"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="cameraHeading">Camera Heading</Label>
-                  <Select value={formData.cameraHeading} onValueChange={(value) => handleInputChange('cameraHeading', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select heading" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="north">North</SelectItem>
-                      <SelectItem value="south">South</SelectItem>
-                      <SelectItem value="east">East</SelectItem>
-                      <SelectItem value="west">West</SelectItem>
-                      <SelectItem value="northeast">Northeast</SelectItem>
-                      <SelectItem value="northwest">Northwest</SelectItem>
-                      <SelectItem value="southeast">Southeast</SelectItem>
-                      <SelectItem value="southwest">Southwest</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="cameraHeading"
+                    value={formData.cameraHeading}
+                    onChange={(e) => handleInputChange('cameraHeading', e.target.value)}
+                    placeholder="e.g., westbound"
+                  />
                 </div>
               </CardContent>
             </Card>

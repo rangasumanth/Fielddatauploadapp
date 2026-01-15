@@ -358,11 +358,10 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
                       <SelectValue placeholder="Select lighting" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="daylight">Daylight</SelectItem>
-                      <SelectItem value="dusk">Dusk</SelectItem>
-                      <SelectItem value="dawn">Dawn</SelectItem>
-                      <SelectItem value="night">Night</SelectItem>
-                      <SelectItem value="overcast">Overcast</SelectItem>
+                      <SelectItem value="night_ir">Night (IR)</SelectItem>
+                      <SelectItem value="day">Day</SelectItem>
+                      <SelectItem value="transient">Transient</SelectItem>
+                      <SelectItem value="night_no_ir">Night (no IR)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

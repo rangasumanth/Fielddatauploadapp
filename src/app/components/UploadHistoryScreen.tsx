@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo } from 'lucide-react';
+import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo, Upload } from 'lucide-react';
 import type { UserInfo, TestData } from '@/app/App';
 
 type UploadHistoryScreenProps = {
@@ -18,6 +18,9 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTest, setSelectedTest] = useState<TestData | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [pendingUploadTestId, setPendingUploadTestId] = useState<string | null>(null);
+  const [uploadingTestId, setUploadingTestId] = useState<string | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadTests();
@@ -92,6 +95,56 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
     }
   };
 
+  const handleStartUpload = (testId: string) => {
+    setPendingUploadTestId(testId);
+    uploadInputRef.current?.click();
+  };
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !pendingUploadTestId) {
+      return;
+    }
+
+    setUploadingTestId(pendingUploadTestId);
+    try {
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) {
+        throw new Error('Missing Supabase URL');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('testId', pendingUploadTestId);
+
+      const uploadResponse = await fetch(
+        `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${publicAnonKey}`
+          },
+          body: formData
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json();
+        throw new Error(error.error || 'Failed to upload video');
+      }
+
+      toast.success('Video uploaded successfully');
+      loadTests();
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      toast.error('Failed to upload video');
+    } finally {
+      setUploadingTestId(null);
+      setPendingUploadTestId(null);
+      e.target.value = '';
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -159,7 +212,9 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tests.map((test) => (
+                    {tests.map((test) => {
+                      const hasVideo = Boolean(test.videoUrl || test.videoFileName || test.metadata?.videoFileName);
+                      return (
                       <TableRow key={test.testId}>
                         <TableCell className="font-medium">
                           {test.metadata?.date || 'N/A'}
@@ -192,6 +247,21 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
+                            {!hasVideo && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleStartUpload(test.testId)}
+                                title="Upload Video"
+                                disabled={uploadingTestId === test.testId}
+                              >
+                                {uploadingTestId === test.testId ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Upload className="w-4 h-4" />
+                                )}
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -204,7 +274,8 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -337,6 +408,14 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
           )}
         </DialogContent>
       </Dialog>
+
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="video/*"
+        onChange={handleUploadFile}
+        className="hidden"
+      />
     </div>
   );
 }

@@ -140,7 +140,7 @@ export default function App() {
     setCurrentScreen('video-upload');
   };
 
-  const handleVideoUpload = (file: File) => {
+  const handleVideoUpload = (file: File | null) => {
     setVideoFile(file);
     setCurrentScreen('review-submit');
   };
@@ -200,12 +200,13 @@ export default function App() {
 
       {currentScreen === 'video-upload' && (
         <VideoUploadScreen
+          videoFile={videoFile}
           onUpload={handleVideoUpload}
           onBack={() => setCurrentScreen('metadata-form')}
         />
       )}
 
-      {currentScreen === 'review-submit' && userInfo && geoLocation && metadata && videoFile && (
+      {currentScreen === 'review-submit' && userInfo && geoLocation && metadata && (
         <ReviewSubmitScreen
           testId={currentTestId}
           userInfo={userInfo}
@@ -214,6 +215,7 @@ export default function App() {
           videoFile={videoFile}
           onSubmitComplete={handleSubmitComplete}
           onBack={() => setCurrentScreen('video-upload')}
+          onEditMetadata={() => setCurrentScreen('metadata-form')}
         />
       )}
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Progress } from '@/app/components/ui/progress';
@@ -6,13 +6,20 @@ import { toast } from 'sonner';
 import { Upload, FileVideo, ArrowLeft, Check, X } from 'lucide-react';
 
 type VideoUploadScreenProps = {
-  onUpload: (file: File) => void;
+  videoFile?: File | null;
+  onUpload: (file: File | null) => void;
   onBack: () => void;
 };
 
-export function VideoUploadScreen({ onUpload, onBack }: VideoUploadScreenProps) {
+export function VideoUploadScreen({ videoFile, onUpload, onBack }: VideoUploadScreenProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (videoFile) {
+      setSelectedFile(videoFile);
+    }
+  }, [videoFile]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -72,6 +79,10 @@ export function VideoUploadScreen({ onUpload, onBack }: VideoUploadScreenProps) 
     }
 
     onUpload(selectedFile);
+  };
+
+  const handleSkip = () => {
+    onUpload(null);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -239,6 +250,9 @@ export function VideoUploadScreen({ onUpload, onBack }: VideoUploadScreenProps) 
             <div className="flex gap-3 justify-end pt-4 border-t">
               <Button variant="outline" onClick={onBack}>
                 Back
+              </Button>
+              <Button variant="outline" onClick={handleSkip}>
+                Upload Later
               </Button>
               <Button
                 onClick={handleContinue}

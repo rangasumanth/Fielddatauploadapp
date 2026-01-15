@@ -13,9 +13,10 @@ type ReviewSubmitScreenProps = {
   userInfo: UserInfo;
   geoLocation: GeoLocation;
   metadata: MetadataForm;
-  videoFile: File;
+  videoFile: File | null;
   onSubmitComplete: () => void;
   onBack: () => void;
+  onEditMetadata: () => void;
 };
 
 export function ReviewSubmitScreen({
@@ -25,7 +26,8 @@ export function ReviewSubmitScreen({
   metadata,
   videoFile,
   onSubmitComplete,
-  onBack
+  onBack,
+  onEditMetadata
 }: ReviewSubmitScreenProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -50,9 +52,13 @@ export function ReviewSubmitScreen({
         userInfo,
         geoLocation,
         metadata,
-        videoFileName: videoFile.name,
-        videoSize: videoFile.size,
-        videoType: videoFile.type
+        ...(videoFile
+          ? {
+              videoFileName: videoFile.name,
+              videoSize: videoFile.size,
+              videoType: videoFile.type
+            }
+          : {})
       };
 
       const metadataResponse = await fetch(
@@ -74,32 +80,34 @@ export function ReviewSubmitScreen({
 
       setUploadProgress(40);
 
-      // Step 2: Upload video
-      setCurrentStep('Uploading video to S3...');
-      
-      const formData = new FormData();
-      formData.append('file', videoFile);
-      formData.append('testId', testId);
+      if (videoFile) {
+        // Step 2: Upload video
+        setCurrentStep('Uploading video to S3...');
+        
+        const formData = new FormData();
+        formData.append('file', videoFile);
+        formData.append('testId', testId);
 
-      const uploadResponse = await fetch(
-        `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`
-          },
-          body: formData
+        const uploadResponse = await fetch(
+          `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${publicAnonKey}`
+            },
+            body: formData
+          }
+        );
+
+        setUploadProgress(80);
+
+        if (!uploadResponse.ok) {
+          const error = await uploadResponse.json();
+          throw new Error(error.error || 'Failed to upload video');
         }
-      );
 
-      setUploadProgress(80);
-
-      if (!uploadResponse.ok) {
-        const error = await uploadResponse.json();
-        throw new Error(error.error || 'Failed to upload video');
+        await uploadResponse.json();
       }
-
-      const uploadResult = await uploadResponse.json();
       
       setCurrentStep('Finalizing submission...');
       setUploadProgress(100);
@@ -282,20 +290,27 @@ export function ReviewSubmitScreen({
                 Video Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">File Name</p>
-                <p className="font-medium truncate">{videoFile.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">File Size</p>
-                <p className="font-medium">{formatFileSize(videoFile.size)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">File Type</p>
-                <p className="font-medium">{videoFile.type}</p>
-              </div>
-            </CardContent>
+            {videoFile ? (
+              <CardContent className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">File Name</p>
+                  <p className="font-medium truncate">{videoFile.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">File Size</p>
+                  <p className="font-medium">{formatFileSize(videoFile.size)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">File Type</p>
+                  <p className="font-medium">{videoFile.type}</p>
+                </div>
+              </CardContent>
+            ) : (
+              <CardContent>
+                <p className="text-sm text-gray-500">No video selected yet.</p>
+                <p className="text-sm text-gray-400">You can upload a video later from Upload History.</p>
+              </CardContent>
+            )}
           </Card>
 
           {/* Test ID */}
@@ -313,8 +328,11 @@ export function ReviewSubmitScreen({
 
           {/* Action Buttons */}
           <div className="flex gap-3 justify-end sticky bottom-0 bg-white p-4 border-t rounded-lg">
+            <Button variant="outline" onClick={onEditMetadata} disabled={isSubmitting}>
+              Edit Metadata
+            </Button>
             <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
-              Back to Edit
+              Back to Video
             </Button>
             <Button
               onClick={handleSubmit}

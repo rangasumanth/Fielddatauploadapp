@@ -42,6 +42,75 @@ app.get("/make-server-54e4d920/health", (c) => {
   return c.json({ status: "ok" });
 });
 
+// Test endpoint for debugging
+app.get("/make-server-54e4d920/test", (c) => {
+  return c.json({ 
+    message: "Test endpoint working",
+    timestamp: new Date().toISOString(),
+    env: Deno.env.get('SUPABASE_URL') ? 'Supabase env available' : 'Supabase env missing'
+  });
+});
+
+// Get location data from IP (server-side fetch bypasses firewall)
+app.get("/make-server-54e4d920/location/ip", async (c) => {
+  try {
+    console.log("Fetching IP-based location...");
+    
+    // Try multiple services with fallback
+    const services = [
+      'https://ipapi.co/json/',
+      'https://ip-api.com/json/'
+    ];
+    
+    for (const service of services) {
+      try {
+        console.log(`Trying service: ${service}`);
+        const response = await fetch(service, {
+          signal: AbortSignal.timeout(5000)
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`Got location from ${service}:`, data);
+          
+          if (service.includes('ipapi.co')) {
+            return c.json({
+              success: true,
+              city: data.city || 'Unknown',
+              state: data.region || 'Unknown',
+              ip: data.ip_address || data.ip
+            });
+          } else if (service.includes('ip-api.com')) {
+            return c.json({
+              success: true,
+              city: data.city || 'Unknown',
+              state: data.regionName || 'Unknown',
+              ip: data.query
+            });
+          }
+        }
+      } catch (error) {
+        console.warn(`Service ${service} failed:`, error);
+        continue;
+      }
+    }
+    
+    // All services failed
+    console.log("All IP services failed");
+    return c.json({
+      success: false,
+      city: 'Unknown',
+      state: 'Unknown'
+    }, 500);
+  } catch (error) {
+    console.error('Error fetching location:', error);
+    return c.json({
+      success: false,
+      error: `Failed to fetch location: ${error}`
+    }, 500);
+  }
+});
+
 // Session Management - Store user info
 app.post("/make-server-54e4d920/session", async (c) => {
   try {

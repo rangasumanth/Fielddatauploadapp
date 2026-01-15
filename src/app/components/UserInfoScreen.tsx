@@ -55,7 +55,7 @@ export function UserInfoScreen({
 
     try {
       const { projectId, publicAnonKey } = await import(
-        "/utils/supabase/info"
+        "@/utils/supabase/info"
       );
 
       const response = await fetch(
@@ -126,7 +126,7 @@ export function UserInfoScreen({
                 type="email"
                 value={email}
                 readOnly
-                disabled
+                className="bg-gray-50"
               />
             </div>
 

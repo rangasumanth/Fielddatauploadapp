@@ -119,35 +119,58 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
 
                 <div className="space-y-2">
                   <Label htmlFor="deviceId">Device ID *</Label>
-                  <Input
-                    id="deviceId"
-                    value={formData.deviceId}
-                    onChange={(e) => handleInputChange('deviceId', e.target.value)}
-                    placeholder="e.g., CAM-001"
-                    required
-                  />
+                  <Select value={formData.deviceId} onValueChange={(value) => handleInputChange('deviceId', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select device ID" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="D20A03670">D20A03670</SelectItem>
+                      <SelectItem value="D20A04600">D20A04600</SelectItem>
+                      <SelectItem value="D20A03710">D20A03710</SelectItem>
+                      <SelectItem value="D20A03700">D20A03700</SelectItem>
+                      <SelectItem value="D20A06831">D20A06831</SelectItem>
+                      <SelectItem value="D20A05310">D20A05310</SelectItem>
+                      <SelectItem value="D20A00440">D20A00440</SelectItem>
+                      <SelectItem value="D20A06821">D20A06821</SelectItem>
+                      <SelectItem value="D20A07941">D20A07941</SelectItem>
+                      <SelectItem value="D20A07821">D20A07821</SelectItem>
+                      <SelectItem value="D20A07681">D20A07681</SelectItem>
+                      <SelectItem value="D20A04690">D20A04690</SelectItem>
+                      <SelectItem value="D20A04780">D20A04780</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="deviceType">Device Type *</Label>
-                  <Input
-                    id="deviceType"
-                    value={formData.deviceType}
-                    onChange={(e) => handleInputChange('deviceType', e.target.value)}
-                    placeholder="e.g., HD Camera X200"
-                    required
-                  />
+                  <Select value={formData.deviceType} onValueChange={(value) => handleInputChange('deviceType', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select device type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pre-EVT">Pre-EVT</SelectItem>
+                      <SelectItem value="EVT">EVT</SelectItem>
+                      <SelectItem value="DVT">DVT</SelectItem>
+                      <SelectItem value="RING">RING</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="testCycle">Test Cycle *</Label>
-                  <Input
-                    id="testCycle"
-                    value={formData.testCycle}
-                    onChange={(e) => handleInputChange('testCycle', e.target.value)}
-                    placeholder="e.g., Winter 2026 - Phase 1"
-                    required
-                  />
+                  <Select value={formData.testCycle} onValueChange={(value) => handleInputChange('testCycle', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select test cycle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GA 2 - RC1">GA 2 - RC1</SelectItem>
+                      <SelectItem value="GA 2 - RC2">GA 2 - RC2</SelectItem>
+                      <SelectItem value="GA 2 - RC3">GA 2 - RC3</SelectItem>
+                      <SelectItem value="GA 2 - RC4">GA 2 - RC4</SelectItem>
+                      <SelectItem value="GA 2 - RC5">GA 2 - RC5</SelectItem>
+                      <SelectItem value="GA 2 - RC6">GA 2 - RC6</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -186,11 +209,16 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
                       <SelectValue placeholder="Select environment type" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="city">City</SelectItem>
                       <SelectItem value="urban">Urban</SelectItem>
                       <SelectItem value="suburban">Suburban</SelectItem>
                       <SelectItem value="rural">Rural</SelectItem>
                       <SelectItem value="highway">Highway</SelectItem>
                       <SelectItem value="residential">Residential</SelectItem>
+                      <SelectItem value="industrial">Industrial</SelectItem>
+                      <SelectItem value="mountainous">Mountainous</SelectItem>
+                      <SelectItem value="coastal">Coastal</SelectItem>
+                      <SelectItem value="transportation_hub">Transportation Hub</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

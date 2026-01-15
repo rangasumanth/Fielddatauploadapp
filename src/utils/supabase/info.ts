@@ -5,11 +5,9 @@ const fallbackUrl =
   (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
   (import.meta.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined);
 
-const resolveProjectId = (): string | undefined => {
-  if (rawProjectId) return rawProjectId;
-  if (!fallbackUrl) return undefined;
+const resolveProjectIdFromUrl = (url: string): string | undefined => {
   try {
-    const parsed = new URL(fallbackUrl);
+    const parsed = new URL(url);
     const hostname = parsed.hostname;
     if (!hostname.endsWith('.supabase.co')) return undefined;
     return hostname.replace('.supabase.co', '');
@@ -18,13 +16,15 @@ const resolveProjectId = (): string | undefined => {
   }
 };
 
-const projectId = resolveProjectId();
+const projectId = rawProjectId || (fallbackUrl ? resolveProjectIdFromUrl(fallbackUrl) : undefined);
 const publicAnonKey = rawAnonKey || fallbackAnonKey;
+const supabaseUrl =
+  fallbackUrl || (projectId ? `https://${projectId}.supabase.co` : undefined);
 
-if (!projectId || !publicAnonKey) {
+if (!supabaseUrl || !publicAnonKey) {
   console.warn(
-    'Missing Supabase config. Provide VITE_SUPABASE_PROJECT_ID/VITE_SUPABASE_ANON_KEY or SUPABASE URL/anon key env vars.'
+    'Missing Supabase config. Provide VITE_SUPABASE_URL or VITE_SUPABASE_PROJECT_ID plus an anon key.'
   );
 }
 
-export { projectId, publicAnonKey };
+export { projectId, publicAnonKey, supabaseUrl };

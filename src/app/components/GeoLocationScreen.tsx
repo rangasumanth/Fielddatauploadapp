@@ -52,8 +52,11 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
       console.log('Fetching location from backend (bypasses firewall)...');
       
       // Import Supabase config
-      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
-      const url = `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/location/ip`;
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) {
+        throw new Error('Missing Supabase URL');
+      }
+      const url = `${supabaseUrl}/functions/v1/make-server-54e4d920/location/ip`;
       console.log('Backend URL:', url);
       
       // Call backend function to fetch location
@@ -169,8 +172,11 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
   const testBackendConnection = async (): void => {
     console.log('=== Backend Connection Test ===');
     try {
-      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
-      const testUrl = `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/test`;
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) {
+        throw new Error('Missing Supabase URL');
+      }
+      const testUrl = `${supabaseUrl}/functions/v1/make-server-54e4d920/test`;
       console.log('Testing backend endpoint:', testUrl);
       
       const response = await fetch(testUrl, {

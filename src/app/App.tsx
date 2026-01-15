@@ -95,9 +95,12 @@ export default function App() {
 
   const fetchSession = async (sid: string) => {
     try {
-      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) {
+        throw new Error('Missing Supabase URL');
+      }
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/session/${sid}`,
+        `${supabaseUrl}/functions/v1/make-server-54e4d920/session/${sid}`,
         {
           headers: { 'Authorization': `Bearer ${publicAnonKey}` }
         }

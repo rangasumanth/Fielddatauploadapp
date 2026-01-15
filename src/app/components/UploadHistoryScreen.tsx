@@ -26,10 +26,13 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
   const loadTests = async () => {
     setIsLoading(true);
     try {
-      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) {
+        throw new Error('Missing Supabase URL');
+      }
       
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/tests`,
+        `${supabaseUrl}/functions/v1/make-server-54e4d920/tests`,
         {
           headers: {
             'Authorization': `Bearer ${publicAnonKey}`
@@ -62,10 +65,13 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
     }
 
     try {
-      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) {
+        throw new Error('Missing Supabase URL');
+      }
       
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/tests/${testId}`,
+        `${supabaseUrl}/functions/v1/make-server-54e4d920/tests/${testId}`,
         {
           method: 'DELETE',
           headers: {

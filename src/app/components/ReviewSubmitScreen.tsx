@@ -36,7 +36,10 @@ export function ReviewSubmitScreen({
     setUploadProgress(0);
     
     try {
-      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) {
+        throw new Error('Missing Supabase URL');
+      }
 
       // Step 1: Submit metadata
       setCurrentStep('Saving metadata...');
@@ -53,7 +56,7 @@ export function ReviewSubmitScreen({
       };
 
       const metadataResponse = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/tests`,
+        `${supabaseUrl}/functions/v1/make-server-54e4d920/tests`,
         {
           method: 'POST',
           headers: {
@@ -79,7 +82,7 @@ export function ReviewSubmitScreen({
       formData.append('testId', testId);
 
       const uploadResponse = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/upload-video`,
+        `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
         {
           method: 'POST',
           headers: {

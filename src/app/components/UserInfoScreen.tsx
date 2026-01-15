@@ -54,12 +54,15 @@ export function UserInfoScreen({
     setIsLoading(true);
 
     try {
-      const { projectId, publicAnonKey } = await import(
+      const { supabaseUrl, publicAnonKey } = await import(
         "@/utils/supabase/info"
       );
+      if (!supabaseUrl) {
+        throw new Error("Missing Supabase URL");
+      }
 
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/session`,
+        `${supabaseUrl}/functions/v1/make-server-54e4d920/session`,
         {
           method: "POST",
           headers: {

@@ -26,7 +26,7 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
   const loadTests = async () => {
     setIsLoading(true);
     try {
-      const { projectId, publicAnonKey } = await import('/utils/supabase/info');
+      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
       
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/tests`,
@@ -62,7 +62,7 @@ export function UploadHistoryScreen({ userInfo, onBack }: UploadHistoryScreenPro
     }
 
     try {
-      const { projectId, publicAnonKey } = await import('/utils/supabase/info');
+      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
       
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-54e4d920/tests/${testId}`,

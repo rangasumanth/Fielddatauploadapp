@@ -36,7 +36,7 @@ export function ReviewSubmitScreen({
     setUploadProgress(0);
     
     try {
-      const { projectId, publicAnonKey } = await import('/utils/supabase/info');
+      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
 
       // Step 1: Submit metadata
       setCurrentStep('Saving metadata...');

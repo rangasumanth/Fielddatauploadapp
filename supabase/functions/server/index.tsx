@@ -172,6 +172,50 @@ app.post("/make-server-54e4d920/tests", async (c) => {
       createdAt: existingTest?.createdAt ?? now,
       updatedAt: now
     });
+
+    const metadata = testData.metadata || {};
+    const geo = testData.geoLocation || {};
+    const user = testData.userInfo || {};
+
+    await supabase.from('tests').upsert({
+      test_id: testData.testId,
+      session_id: testData.sessionId ?? null,
+      user_name: user.userName ?? null,
+      email: user.email ?? null,
+      geo_latitude: geo.latitude ?? null,
+      geo_longitude: geo.longitude ?? null,
+      geo_city: geo.city ?? null,
+      geo_state: geo.state ?? null,
+      geo_accuracy: geo.accuracy ?? null,
+      geo_timestamp: geo.timestamp ?? null,
+      metadata_date: metadata.date ?? null,
+      device_id: metadata.deviceId ?? null,
+      device_type: metadata.deviceType ?? null,
+      test_cycle: metadata.testCycle ?? null,
+      location: metadata.location ?? null,
+      environment: metadata.environment ?? null,
+      time_start: metadata.timeStart ?? null,
+      time_end: metadata.timeEnd ?? null,
+      road_type: metadata.roadType ?? null,
+      posted_speed_limit: metadata.postedSpeedLimit ?? null,
+      number_of_lanes: metadata.numberOfLanes ?? null,
+      traffic_density: metadata.trafficDensity ?? null,
+      road_heading: metadata.roadHeading ?? null,
+      camera_heading: metadata.cameraHeading ?? null,
+      lighting: metadata.lighting ?? null,
+      weather_condition: metadata.weatherCondition ?? null,
+      severity: metadata.severity ?? null,
+      measured_distance: metadata.measuredDistance ?? null,
+      mount_height: metadata.mountHeight ?? null,
+      pitch_angle: metadata.pitchAngle ?? null,
+      vehicle_capture_view: metadata.vehicleCaptureView ?? null,
+      external_battery_plugged_in: metadata.externalBatteryPluggedIn ?? null,
+      firmware: metadata.firmware ?? null,
+      var_version: metadata.varVersion ?? null,
+      status: testData.status ?? existingTest?.status ?? 'pending',
+      created_at: existingTest?.createdAt ?? now,
+      updated_at: now
+    });
     
     return c.json({ success: true, testId: testData.testId });
   } catch (error) {
@@ -201,6 +245,38 @@ app.put("/make-server-54e4d920/tests/:testId", async (c) => {
     };
 
     await kv.set(`test:${testId}`, merged);
+
+    if (updates.metadata) {
+      const metadata = updates.metadata;
+      await supabase.from('tests').update({
+        metadata_date: metadata.date ?? null,
+        device_id: metadata.deviceId ?? null,
+        device_type: metadata.deviceType ?? null,
+        test_cycle: metadata.testCycle ?? null,
+        location: metadata.location ?? null,
+        environment: metadata.environment ?? null,
+        time_start: metadata.timeStart ?? null,
+        time_end: metadata.timeEnd ?? null,
+        road_type: metadata.roadType ?? null,
+        posted_speed_limit: metadata.postedSpeedLimit ?? null,
+        number_of_lanes: metadata.numberOfLanes ?? null,
+        traffic_density: metadata.trafficDensity ?? null,
+        road_heading: metadata.roadHeading ?? null,
+        camera_heading: metadata.cameraHeading ?? null,
+        lighting: metadata.lighting ?? null,
+        weather_condition: metadata.weatherCondition ?? null,
+        severity: metadata.severity ?? null,
+        measured_distance: metadata.measuredDistance ?? null,
+        mount_height: metadata.mountHeight ?? null,
+        pitch_angle: metadata.pitchAngle ?? null,
+        vehicle_capture_view: metadata.vehicleCaptureView ?? null,
+        external_battery_plugged_in: metadata.externalBatteryPluggedIn ?? null,
+        firmware: metadata.firmware ?? null,
+        var_version: metadata.varVersion ?? null,
+        updated_at: now
+      }).eq('test_id', testId);
+    }
+
     return c.json({ success: true, testId });
   } catch (error) {
     console.log(`Error updating test: ${error}`);
@@ -212,12 +288,65 @@ app.put("/make-server-54e4d920/tests/:testId", async (c) => {
 app.get("/make-server-54e4d920/tests/:testId", async (c) => {
   try {
     const testId = c.req.param('testId');
-    const test = await kv.get(`test:${testId}`);
-    
-    if (!test) {
+    const { data: testRow } = await supabase.from('tests').select('*').eq('test_id', testId).maybeSingle();
+
+    if (!testRow) {
       return c.json({ error: "Test not found" }, 404);
     }
-    
+
+    const { data: videos } = await supabase.from('test_videos').select('*').eq('test_id', testId).order('uploaded_at', { ascending: true });
+
+    const test = {
+      testId: testRow.test_id,
+      userInfo: { userName: testRow.user_name, email: testRow.email },
+      geoLocation: {
+        latitude: testRow.geo_latitude,
+        longitude: testRow.geo_longitude,
+        city: testRow.geo_city,
+        state: testRow.geo_state,
+        accuracy: testRow.geo_accuracy,
+        timestamp: testRow.geo_timestamp
+      },
+      metadata: {
+        date: testRow.metadata_date,
+        deviceId: testRow.device_id,
+        deviceType: testRow.device_type,
+        testCycle: testRow.test_cycle,
+        location: testRow.location,
+        environment: testRow.environment,
+        timeStart: testRow.time_start,
+        timeEnd: testRow.time_end,
+        roadType: testRow.road_type,
+        postedSpeedLimit: testRow.posted_speed_limit,
+        numberOfLanes: testRow.number_of_lanes,
+        trafficDensity: testRow.traffic_density,
+        roadHeading: testRow.road_heading,
+        cameraHeading: testRow.camera_heading,
+        lighting: testRow.lighting,
+        weatherCondition: testRow.weather_condition,
+        severity: testRow.severity,
+        measuredDistance: testRow.measured_distance,
+        mountHeight: testRow.mount_height,
+        pitchAngle: testRow.pitch_angle,
+        vehicleCaptureView: testRow.vehicle_capture_view,
+        externalBatteryPluggedIn: testRow.external_battery_plugged_in,
+        firmware: testRow.firmware,
+        varVersion: testRow.var_version
+      },
+      videos: (videos || []).map((video) => ({
+        fileName: video.file_name,
+        url: video.url,
+        size: video.size,
+        type: video.type,
+        uploadedAt: video.uploaded_at
+      })),
+      videoFileName: testRow.latest_video_file_name,
+      videoUrl: testRow.latest_video_url,
+      status: testRow.status,
+      createdAt: testRow.created_at,
+      updatedAt: testRow.updated_at
+    };
+
     return c.json(test);
   } catch (error) {
     console.log(`Error retrieving test: ${error}`);
@@ -228,16 +357,69 @@ app.get("/make-server-54e4d920/tests/:testId", async (c) => {
 // Get all tests
 app.get("/make-server-54e4d920/tests", async (c) => {
   try {
-    const tests = await kv.getByPrefix('test:');
-    
-    // Sort by createdAt descending
-    const sortedTests = tests.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
-      return dateB - dateA;
+    const { data: testRows } = await supabase.from('tests').select('*').order('created_at', { ascending: false });
+    const { data: videoRows } = await supabase.from('test_videos').select('*').order('uploaded_at', { ascending: true });
+
+    const videosByTest: Record<string, any[]> = {};
+    (videoRows || []).forEach((video) => {
+      if (!videosByTest[video.test_id]) {
+        videosByTest[video.test_id] = [];
+      }
+      videosByTest[video.test_id].push(video);
     });
-    
-    return c.json({ tests: sortedTests });
+
+    const tests = (testRows || []).map((testRow) => ({
+      testId: testRow.test_id,
+      userInfo: { userName: testRow.user_name, email: testRow.email },
+      geoLocation: {
+        latitude: testRow.geo_latitude,
+        longitude: testRow.geo_longitude,
+        city: testRow.geo_city,
+        state: testRow.geo_state,
+        accuracy: testRow.geo_accuracy,
+        timestamp: testRow.geo_timestamp
+      },
+      metadata: {
+        date: testRow.metadata_date,
+        deviceId: testRow.device_id,
+        deviceType: testRow.device_type,
+        testCycle: testRow.test_cycle,
+        location: testRow.location,
+        environment: testRow.environment,
+        timeStart: testRow.time_start,
+        timeEnd: testRow.time_end,
+        roadType: testRow.road_type,
+        postedSpeedLimit: testRow.posted_speed_limit,
+        numberOfLanes: testRow.number_of_lanes,
+        trafficDensity: testRow.traffic_density,
+        roadHeading: testRow.road_heading,
+        cameraHeading: testRow.camera_heading,
+        lighting: testRow.lighting,
+        weatherCondition: testRow.weather_condition,
+        severity: testRow.severity,
+        measuredDistance: testRow.measured_distance,
+        mountHeight: testRow.mount_height,
+        pitchAngle: testRow.pitch_angle,
+        vehicleCaptureView: testRow.vehicle_capture_view,
+        externalBatteryPluggedIn: testRow.external_battery_plugged_in,
+        firmware: testRow.firmware,
+        varVersion: testRow.var_version
+      },
+      videos: (videosByTest[testRow.test_id] || []).map((video) => ({
+        fileName: video.file_name,
+        url: video.url,
+        size: video.size,
+        type: video.type,
+        uploadedAt: video.uploaded_at
+      })),
+      videoFileName: testRow.latest_video_file_name,
+      videoUrl: testRow.latest_video_url,
+      status: testRow.status,
+      createdAt: testRow.created_at,
+      updatedAt: testRow.updated_at
+    }));
+
+    return c.json({ tests });
   } catch (error) {
     console.log(`Error retrieving tests: ${error}`);
     return c.json({ error: `Failed to retrieve tests: ${error}` }, 500);
@@ -303,6 +485,23 @@ app.post("/make-server-54e4d920/upload-video", async (c) => {
       updatedAt: now
     });
 
+    await supabase.from('test_videos').insert({
+      test_id: testId,
+      file_name: fileName,
+      url: signedUrlData?.signedUrl,
+      size: file.size,
+      type: file.type,
+      uploaded_at: now
+    });
+
+    await supabase.from('tests').update({
+      latest_video_file_name: fileName,
+      latest_video_url: signedUrlData?.signedUrl,
+      video_uploaded_at: now,
+      status: 'completed',
+      updated_at: now
+    }).eq('test_id', testId);
+
     return c.json({ 
       success: true, 
       fileName,
@@ -344,6 +543,8 @@ app.delete("/make-server-54e4d920/tests/:testId", async (c) => {
 
     // Delete test metadata
     await kv.del(`test:${testId}`);
+
+    await supabase.from('tests').delete().eq('test_id', testId);
     
     return c.json({ success: true });
   } catch (error) {

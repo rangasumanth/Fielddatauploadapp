@@ -10,6 +10,7 @@ import type { UserInfo, GeoLocation, MetadataForm } from '@/app/App';
 
 type ReviewSubmitScreenProps = {
   testId: string;
+  sessionId: string;
   userInfo: UserInfo;
   geoLocation: GeoLocation;
   metadata: MetadataForm;
@@ -21,6 +22,7 @@ type ReviewSubmitScreenProps = {
 
 export function ReviewSubmitScreen({
   testId,
+  sessionId,
   userInfo,
   geoLocation,
   metadata,
@@ -49,6 +51,7 @@ export function ReviewSubmitScreen({
 
       const testData = {
         testId,
+        sessionId,
         userInfo,
         geoLocation,
         metadata

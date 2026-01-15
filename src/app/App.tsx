@@ -245,6 +245,7 @@ export default function App() {
       {currentScreen === 'review-submit' && userInfo && geoLocation && metadata && (
         <ReviewSubmitScreen
           testId={currentTestId}
+          sessionId={sessionId}
           userInfo={userInfo}
           geoLocation={geoLocation}
           metadata={metadata}

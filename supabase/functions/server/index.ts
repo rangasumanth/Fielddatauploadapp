@@ -15,6 +15,7 @@ const supabase = createClient(
 app.use('*', logger(console.log));
 
 // Enable CORS for all routes and methods
+// Enable CORS for all routes and methods
 app.use(
   "/*",
   cors({
@@ -25,6 +26,17 @@ app.use(
     maxAge: 600,
   }),
 );
+
+// Debug 404 handler
+app.notFound((c) => {
+  return c.json({
+    error: 'Not Found',
+    message: 'Route not found',
+    path: c.req.path,
+    url: c.req.url,
+    method: c.req.method
+  }, 404)
+});
 
 // Create S3 bucket on startup
 const BUCKET_NAME = 'make-54e4d920-field-videos';
@@ -44,7 +56,7 @@ app.get("/make-server-54e4d920/health", (c) => {
 
 // Test endpoint for debugging
 app.get("/make-server-54e4d920/test", (c) => {
-  return c.json({ 
+  return c.json({
     message: "Test endpoint working",
     timestamp: new Date().toISOString(),
     env: Deno.env.get('SUPABASE_URL') ? 'Supabase env available' : 'Supabase env missing'
@@ -55,24 +67,24 @@ app.get("/make-server-54e4d920/test", (c) => {
 app.get("/make-server-54e4d920/location/ip", async (c) => {
   try {
     console.log("Fetching IP-based location...");
-    
+
     // Try multiple services with fallback
     const services = [
       'https://ipapi.co/json/',
       'https://ip-api.com/json/'
     ];
-    
+
     for (const service of services) {
       try {
         console.log(`Trying service: ${service}`);
         const response = await fetch(service, {
           signal: AbortSignal.timeout(5000)
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           console.log(`Got location from ${service}:`, data);
-          
+
           if (service.includes('ipapi.co')) {
             return c.json({
               success: true,
@@ -94,7 +106,7 @@ app.get("/make-server-54e4d920/location/ip", async (c) => {
         continue;
       }
     }
-    
+
     // All services failed
     console.log("All IP services failed");
     return c.json({
@@ -115,13 +127,13 @@ app.get("/make-server-54e4d920/location/ip", async (c) => {
 app.post("/make-server-54e4d920/session", async (c) => {
   try {
     const { sessionId, userName, email } = await c.req.json();
-    
+
     if (!sessionId || !userName || !email) {
       return c.json({ error: "sessionId, userName, and email are required" }, 400);
     }
 
     await kv.set(`session:${sessionId}`, { userName, email, createdAt: new Date().toISOString() });
-    
+
     return c.json({ success: true });
   } catch (error) {
     console.log(`Error storing session: ${error}`);
@@ -134,11 +146,11 @@ app.get("/make-server-54e4d920/session/:sessionId", async (c) => {
   try {
     const sessionId = c.req.param('sessionId');
     const session = await kv.get(`session:${sessionId}`);
-    
+
     if (!session) {
       return c.json({ error: "Session not found" }, 404);
     }
-    
+
     return c.json(session);
   } catch (error) {
     console.log(`Error retrieving session: ${error}`);
@@ -150,7 +162,7 @@ app.get("/make-server-54e4d920/session/:sessionId", async (c) => {
 app.post("/make-server-54e4d920/tests", async (c) => {
   try {
     const testData = await c.req.json();
-    
+
     if (!testData.testId) {
       return c.json({ error: "testId is required" }, 400);
     }
@@ -216,7 +228,7 @@ app.post("/make-server-54e4d920/tests", async (c) => {
       created_at: existingTest?.createdAt ?? now,
       updated_at: now
     });
-    
+
     return c.json({ success: true, testId: testData.testId });
   } catch (error) {
     console.log(`Error storing test data: ${error}`);
@@ -488,17 +500,17 @@ app.post("/make-server-54e4d920/upload-video", async (c) => {
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
     const testId = formData.get('testId') as string;
-    
+
     if (!file || !testId) {
       return c.json({ error: "file and testId are required" }, 400);
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
-    
+
     const now = new Date().toISOString();
     const fileName = `${testId}-${Date.now()}-${file.name}`;
-    
+
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(fileName, buffer, {
@@ -558,10 +570,10 @@ app.post("/make-server-54e4d920/upload-video", async (c) => {
       updated_at: now
     }).eq('test_id', testId);
 
-    return c.json({ 
-      success: true, 
+    return c.json({
+      success: true,
       fileName,
-      signedUrl: signedUrlData?.signedUrl 
+      signedUrl: signedUrlData?.signedUrl
     });
   } catch (error) {
     console.log(`Error uploading video: ${error}`);
@@ -574,7 +586,7 @@ app.delete("/make-server-54e4d920/tests/:testId", async (c) => {
   try {
     const testId = c.req.param('testId');
     const test = await kv.get(`test:${testId}`);
-    
+
     if (!test) {
       return c.json({ error: "Test not found" }, 404);
     }
@@ -601,7 +613,7 @@ app.delete("/make-server-54e4d920/tests/:testId", async (c) => {
     await kv.del(`test:${testId}`);
 
     await supabase.from('tests').delete().eq('test_id', testId);
-    
+
     return c.json({ success: true });
   } catch (error) {
     console.log(`Error deleting test: ${error}`);

@@ -148,6 +148,7 @@ export default function App() {
   const handleMetadataSubmit = async (formData: MetadataForm) => {
     setMetadata(formData);
     if (isEditingExisting) {
+      let updateSucceeded = false;
       try {
         const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
         if (!supabaseUrl) {
@@ -162,15 +163,23 @@ export default function App() {
           body: JSON.stringify({ metadata: formData })
         });
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to update metadata');
+          let errorMessage = 'Failed to update metadata';
+          try {
+            const error = await response.json();
+            errorMessage = error.error || errorMessage;
+          } catch {}
+          throw new Error(errorMessage);
         }
+        updateSucceeded = true;
         setHistoryRefreshToken(prev => prev + 1);
       } catch (error) {
         console.error('Error updating metadata:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to update metadata');
       } finally {
-        setIsEditingExisting(false);
-        setCurrentScreen('upload-history');
+        if (updateSucceeded) {
+          setIsEditingExisting(false);
+          setCurrentScreen('upload-history');
+        }
       }
       return;
     }

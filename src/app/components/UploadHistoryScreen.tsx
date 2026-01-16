@@ -39,7 +39,9 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
       const response = await fetch(
         `${supabaseUrl}/functions/v1/make-server-54e4d920/tests`,
         {
+          cache: 'no-store',
           headers: {
+            'Cache-Control': 'no-store',
             'Authorization': `Bearer ${publicAnonKey}`
           }
         }

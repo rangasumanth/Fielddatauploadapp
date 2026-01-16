@@ -28,7 +28,7 @@ const functionName =
   (import.meta.env.NEXT_PUBLIC_SUPABASE_FUNCTION_NAME as string | undefined) ||
   'server';
 const functionsBase = supabaseUrl ? `${supabaseUrl}/functions/v1/${functionName}` : undefined;
-const functionsRoutePrefix = functionName === 'server' ? '/make-server-54e4d920' : '';
+const functionsRoutePrefix = '';
 
 if (!supabaseUrl || !publicAnonKey) {
   console.warn(

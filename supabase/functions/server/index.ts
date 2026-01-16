@@ -50,12 +50,12 @@ const BUCKET_NAME = 'make-54e4d920-field-videos';
 })();
 
 // Health check endpoint
-app.get("/make-server-54e4d920/health", (c) => {
+app.get("/health", (c) => {
   return c.json({ status: "ok" });
 });
 
 // Test endpoint for debugging
-app.get("/make-server-54e4d920/test", (c) => {
+app.get("/test", (c) => {
   return c.json({
     message: "Test endpoint working",
     timestamp: new Date().toISOString(),
@@ -64,7 +64,7 @@ app.get("/make-server-54e4d920/test", (c) => {
 });
 
 // Get location data from IP (server-side fetch bypasses firewall)
-app.get("/make-server-54e4d920/location/ip", async (c) => {
+app.get("/location/ip", async (c) => {
   try {
     console.log("Fetching IP-based location...");
 
@@ -124,7 +124,7 @@ app.get("/make-server-54e4d920/location/ip", async (c) => {
 });
 
 // Session Management - Store user info
-app.post("/make-server-54e4d920/session", async (c) => {
+app.post("/session", async (c) => {
   try {
     const { sessionId, userName, email } = await c.req.json();
 
@@ -142,7 +142,7 @@ app.post("/make-server-54e4d920/session", async (c) => {
 });
 
 // Get session info
-app.get("/make-server-54e4d920/session/:sessionId", async (c) => {
+app.get("/session/:sessionId", async (c) => {
   try {
     const sessionId = c.req.param('sessionId');
     const session = await kv.get(`session:${sessionId}`);
@@ -159,7 +159,7 @@ app.get("/make-server-54e4d920/session/:sessionId", async (c) => {
 });
 
 // Submit test data
-app.post("/make-server-54e4d920/tests", async (c) => {
+app.post("/tests", async (c) => {
   try {
     const testData = await c.req.json();
 
@@ -237,7 +237,7 @@ app.post("/make-server-54e4d920/tests", async (c) => {
 });
 
 // Update test metadata
-app.put("/make-server-54e4d920/tests/:testId", async (c) => {
+app.put("/tests/:testId", async (c) => {
   try {
     const testId = c.req.param('testId');
     const updates = await c.req.json();
@@ -353,7 +353,7 @@ app.put("/make-server-54e4d920/tests/:testId", async (c) => {
 });
 
 // Get test by ID
-app.get("/make-server-54e4d920/tests/:testId", async (c) => {
+app.get("/tests/:testId", async (c) => {
   try {
     const testId = c.req.param('testId');
     const { data: testRow } = await supabase.from('tests').select('*').eq('test_id', testId).maybeSingle();
@@ -423,7 +423,7 @@ app.get("/make-server-54e4d920/tests/:testId", async (c) => {
 });
 
 // Get all tests
-app.get("/make-server-54e4d920/tests", async (c) => {
+app.get("/tests", async (c) => {
   try {
     const { data: testRows } = await supabase.from('tests').select('*').order('created_at', { ascending: false });
     const { data: videoRows } = await supabase.from('test_videos').select('*').order('uploaded_at', { ascending: true });
@@ -495,7 +495,7 @@ app.get("/make-server-54e4d920/tests", async (c) => {
 });
 
 // Upload video to Supabase Storage
-app.post("/make-server-54e4d920/upload-video", async (c) => {
+app.post("/upload-video", async (c) => {
   try {
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
@@ -582,7 +582,7 @@ app.post("/make-server-54e4d920/upload-video", async (c) => {
 });
 
 // Delete test
-app.delete("/make-server-54e4d920/tests/:testId", async (c) => {
+app.delete("/tests/:testId", async (c) => {
   try {
     const testId = c.req.param('testId');
     const test = await kv.get(`test:${testId}`);

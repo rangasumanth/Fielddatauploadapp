@@ -48,6 +48,7 @@ export type MetadataForm = {
   externalBatteryPluggedIn: boolean;
   firmware: string;
   varVersion: string;
+  comments?: string;
 };
 
 export type TestData = {
@@ -68,13 +69,13 @@ export type TestData = {
   updatedAt?: string;
 };
 
-export type Screen = 
-  | 'user-info' 
-  | 'dashboard' 
-  | 'geo-location' 
-  | 'metadata-form' 
-  | 'video-upload' 
-  | 'review-submit' 
+export type Screen =
+  | 'user-info'
+  | 'dashboard'
+  | 'geo-location'
+  | 'metadata-form'
+  | 'video-upload'
+  | 'review-submit'
   | 'upload-history';
 
 const normalizeMetadata = (input: MetadataForm | null | undefined): MetadataForm => ({
@@ -101,7 +102,8 @@ const normalizeMetadata = (input: MetadataForm | null | undefined): MetadataForm
   vehicleCaptureView: input?.vehicleCaptureView ?? '',
   externalBatteryPluggedIn: input?.externalBatteryPluggedIn ?? false,
   firmware: input?.firmware ?? '',
-  varVersion: input?.varVersion ?? ''
+  varVersion: input?.varVersion ?? '',
+  comments: input?.comments ?? ''
 });
 
 export default function App() {
@@ -187,7 +189,10 @@ export default function App() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${publicAnonKey}`
           },
-          body: JSON.stringify({ metadata: formData })
+          body: JSON.stringify({
+            metadata: formData,
+            geoLocation: geoLocation // Include updated geolocation info
+          })
         });
         if (!response.ok) {
           if (response.status === 404) {
@@ -197,12 +202,12 @@ export default function App() {
           try {
             const error = await response.json();
             errorMessage = error.error || errorMessage;
-          } catch {}
+          } catch { }
           throw new Error(errorMessage);
         }
         // Update succeeded - increment refresh token and navigate
         setHistoryRefreshToken(prev => prev + 1);
-        toast.success('Metadata updated');
+        toast.success('Test updated successfully');
         setIsEditingExisting(false);
         setCurrentScreen('upload-history');
       } catch (error) {
@@ -236,7 +241,7 @@ export default function App() {
             if (response.ok) {
               // Creation succeeded - increment refresh token and navigate
               setHistoryRefreshToken(prev => prev + 1);
-              toast.success('Metadata saved');
+              toast.success('Test data saved');
               setIsEditingExisting(false);
               setCurrentScreen('upload-history');
             } else {
@@ -281,9 +286,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {currentScreen === 'user-info' && (
-        <UserInfoScreen 
+        <UserInfoScreen
           sessionId={sessionId}
-          onSubmit={handleUserInfoSubmit} 
+          onSubmit={handleUserInfoSubmit}
         />
       )}
 
@@ -298,6 +303,7 @@ export default function App() {
       {currentScreen === 'geo-location' && userInfo && (
         <GeoLocationScreen
           userInfo={userInfo}
+          initialLocation={isEditingExisting ? geoLocation : null}
           onContinue={handleGeoLocationContinue}
           onBack={handleBackToDashboard}
         />
@@ -310,7 +316,7 @@ export default function App() {
           metadata={metadata}
           onSubmit={handleMetadataSubmit}
           onDraftChange={(draft) => setMetadata(draft)}
-          onBack={() => setCurrentScreen(isEditingExisting ? 'upload-history' : 'geo-location')}
+          onBack={() => setCurrentScreen(isEditingExisting ? 'geo-location' : 'geo-location')}
         />
       )}
 
@@ -347,7 +353,7 @@ export default function App() {
             setMetadata(normalizeMetadata(test.metadata));
             setVideoFiles([]);
             setIsEditingExisting(true);
-            setCurrentScreen('metadata-form');
+            setCurrentScreen('geo-location'); // Start edit flow from geo-location
           }}
           onBack={handleBackToDashboard}
         />

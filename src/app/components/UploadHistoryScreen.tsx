@@ -535,6 +535,14 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                     <p className="text-gray-500">Location Landmark</p>
                     <p className="font-medium">{selectedTest.metadata?.location || 'N/A'}</p>
                   </div>
+                  {selectedTest.metadata?.comments && (
+                    <div className="col-span-2 md:col-span-3 mt-2">
+                      <p className="text-gray-500">Comments</p>
+                      <div className="bg-gray-50 p-3 rounded-md border mt-1">
+                        <p className="text-sm whitespace-pre-wrap">{selectedTest.metadata.comments}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

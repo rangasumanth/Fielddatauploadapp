@@ -3,7 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
 import { createClient } from "npm:@supabase/supabase-js@2";
-const app = new Hono();
+const app = new Hono().basePath('/server');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -224,6 +224,7 @@ app.post("/tests", async (c) => {
       external_battery_plugged_in: metadata.externalBatteryPluggedIn ?? null,
       firmware: metadata.firmware ?? null,
       var_version: metadata.varVersion ?? null,
+      comment: metadata.comments ?? null,
       status: testData.status ?? existingTest?.status ?? 'pending',
       created_at: existingTest?.createdAt ?? now,
       updated_at: now
@@ -283,7 +284,8 @@ app.put("/tests/:testId", async (c) => {
         vehicleCaptureView: testRow?.vehicle_capture_view ?? '',
         externalBatteryPluggedIn: testRow?.external_battery_plugged_in ?? false,
         firmware: testRow?.firmware ?? '',
-        varVersion: testRow?.var_version ?? ''
+        varVersion: testRow?.var_version ?? '',
+        comments: testRow?.comment ?? ''
       },
       status: testRow?.status ?? 'pending',
       createdAt: testRow?.created_at ?? now,
@@ -338,6 +340,7 @@ app.put("/tests/:testId", async (c) => {
       external_battery_plugged_in: mergedMetadata.externalBatteryPluggedIn ?? null,
       firmware: mergedMetadata.firmware ?? null,
       var_version: mergedMetadata.varVersion ?? null,
+      comment: mergedMetadata.comments ?? null,
       latest_video_file_name: merged.videoFileName ?? null,
       latest_video_url: merged.videoUrl ?? null,
       status: merged.status ?? 'pending',
@@ -399,7 +402,8 @@ app.get("/tests/:testId", async (c) => {
         vehicleCaptureView: testRow.vehicle_capture_view,
         externalBatteryPluggedIn: testRow.external_battery_plugged_in,
         firmware: testRow.firmware,
-        varVersion: testRow.var_version
+        varVersion: testRow.var_version,
+        comments: testRow.comment
       },
       videos: (videos || []).map((video) => ({
         fileName: video.file_name,
@@ -471,7 +475,8 @@ app.get("/tests", async (c) => {
         vehicleCaptureView: testRow.vehicle_capture_view,
         externalBatteryPluggedIn: testRow.external_battery_plugged_in,
         firmware: testRow.firmware,
-        varVersion: testRow.var_version
+        varVersion: testRow.var_version,
+        comments: testRow.comment
       },
       videos: (videosByTest[testRow.test_id] || []).map((video) => ({
         fileName: video.file_name,

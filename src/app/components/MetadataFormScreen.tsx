@@ -63,11 +63,11 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate required fields
     const requiredFields = ['deviceId', 'deviceType', 'testCycle', 'environment', 'roadType'];
     const missingFields = requiredFields.filter(field => !formData[field as keyof MetadataForm]);
-    
+
     if (missingFields.length > 0) {
       toast.error('Please fill in all required fields');
       return;
@@ -499,6 +499,26 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
                     value={formData.varVersion}
                     onChange={(e) => handleInputChange('varVersion', e.target.value)}
                     placeholder="e.g., VAR-3.0.2"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Additional Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Information</CardTitle>
+                <CardDescription>Optional comments or notes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="comments">Comments</Label>
+                  <textarea
+                    id="comments"
+                    value={formData.comments || ''}
+                    onChange={(e) => handleInputChange('comments', e.target.value)}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Enter any additional notes about this test condition..."
                   />
                 </div>
               </CardContent>

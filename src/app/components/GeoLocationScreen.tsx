@@ -9,319 +9,34 @@ import type { UserInfo, GeoLocation } from '@/app/App';
 
 type GeoLocationScreenProps = {
   userInfo: UserInfo;
+  initialLocation: GeoLocation | null | undefined;
   onContinue: (location: GeoLocation) => void;
   onBack: () => void;
 };
 
-export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationScreenProps) {
+export function GeoLocationScreen({ userInfo, initialLocation, onContinue, onBack }: GeoLocationScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
 
-  const reverseGeocode = async (lat: number, lng: number): Promise<{ city: string; state: string }> => {
-    try {
-      // Using OpenStreetMap Nominatim API for reverse geocoding
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`,
-        {
-          headers: {
-            'User-Agent': 'FieldDataApp/1.0'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Geocoding failed');
-      }
-
-      const data = await response.json();
-      
-      return {
-        city: data.address?.city || data.address?.town || data.address?.village || 'Unknown',
-        state: data.address?.state || 'Unknown'
-      };
-    } catch (error) {
-      console.error('Reverse geocoding error:', error);
-      return { city: 'Unknown', state: 'Unknown' };
-    }
-  };
-
-  const getIPBasedLocation = async (): Promise<{ city: string; state: string }> => {
-    try {
-      console.log('Fetching location from backend (bypasses firewall)...');
-      
-      // Import Supabase config
-      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
-      if (!functionsBase) {
-        throw new Error('Missing Supabase functions base URL');
-      }
-      const url = `${functionsBase}${functionsRoutePrefix}/location/ip`;
-      console.log('Backend URL:', url);
-      
-      // Call backend function to fetch location
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json'
-        }
+  // Initialize with initialLocation if present
+  useEffect(() => {
+    if (initialLocation) {
+      console.log('Initializing with existing location:', initialLocation);
+      setLocation({
+        ...initialLocation,
+        // Ensure timestamp is current if missing
+        timestamp: initialLocation.timestamp || new Date().toISOString()
       });
-
-      console.log('Backend response status:', response.status, response.statusText);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Backend location response:', data);
-        
-        if (data.success) {
-          console.log('Successfully got location from backend:', { city: data.city, state: data.state });
-          return {
-            city: data.city || 'Unknown',
-            state: data.state || 'Unknown'
-          };
-        }
-      } else {
-        // Log error response
-        const errorData = await response.text();
-        console.error('Backend location request failed with status', response.status, ':', errorData);
-      }
-      
-      console.log('Backend location request failed - trying direct IP fallback...');
-      return await getDirectIPLocation();
-    } catch (error) {
-      console.error('Backend location fetch error:', error);
-      console.log('Trying direct IP fallback...');
-      return await getDirectIPLocation();
-    }
-  };
-
-  const getDirectIPLocation = async (): Promise<{ city: string; state: string }> => {
-    try {
-      console.log('Trying direct IP geolocation...');
-      
-      // Try multiple IP geolocation services with fallback
-      const services = [
-        'https://ipapi.co/json/',
-        'https://ip-api.com/json/',
-        'https://ipinfo.io/json'
-      ];
-      
-      for (const service of services) {
-        try {
-          console.log(`Trying service: ${service}`);
-          const response = await fetch(service, {
-            signal: AbortSignal.timeout(5000)
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`Got location from ${service}:`, data);
-            
-            if (service.includes('ipapi.co')) {
-              return {
-                city: data.city || 'Unknown',
-                state: data.region || 'Unknown'
-              };
-            } else if (service.includes('ip-api.com')) {
-              return {
-                city: data.city || 'Unknown',
-                state: data.regionName || 'Unknown'
-              };
-            } else if (service.includes('ipinfo.io')) {
-              return {
-                city: data.city || 'Unknown',
-                state: data.region || 'Unknown'
-              };
-            }
-          }
-        } catch (error) {
-          console.warn(`Service ${service} failed:`, error);
-          continue;
-        }
-      }
-      
-      console.log('All IP services failed - using default location');
-      // Return a default location that's likely to be correct for most users
-      return { city: 'San Francisco', state: 'California' };
-    } catch (error) {
-      console.error('Direct IP location fetch error:', error);
-      return { city: 'San Francisco', state: 'California' };
-    }
-  };
-
-  const checkLocationPermission = async (): Promise<string> => {
-    try {
-      const result = await navigator.permissions.query({ name: 'geolocation' });
-      console.log('Location permission status:', result.state);
-      return result.state; // 'granted', 'prompt', or 'denied'
-    } catch (error) {
-      console.error('Permission check error:', error);
-      return 'unknown';
-    }
-  };
-
-  const testLocationAccess = (): void => {
-    console.log('=== Location Access Test ===');
-    console.log('navigator.geolocation available:', !!navigator.geolocation);
-    console.log('HTTPS connection:', window.location.protocol === 'https:');
-    console.log('Current URL:', window.location.href);
-    checkLocationPermission();
-  };
-
-  const testBackendConnection = async (): void => {
-    console.log('=== Backend Connection Test ===');
-    try {
-      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
-      if (!functionsBase) {
-        throw new Error('Missing Supabase functions base URL');
-      }
-      const testUrl = `${functionsBase}${functionsRoutePrefix}/test`;
-      console.log('Testing backend endpoint:', testUrl);
-      
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Test endpoint response:', response.status, response.statusText);
-      const data = await response.json();
-      console.log('Test endpoint data:', data);
-      
-      if (response.ok) {
-        toast.success('Backend connection test passed!');
-      } else {
-        toast.error('Backend connection test failed');
-      }
-    } catch (error) {
-      console.error('Backend connection test error:', error);
-      toast.error('Backend connection test failed: ' + error.message);
-    }
-  };
-
-  const captureLocation = async () => {
-    setIsLoading(true);
-    setError(null);
-    console.log('Starting location capture...');
-
-    if (!navigator.geolocation) {
-      const msg = 'Geolocation is not supported by your browser';
-      console.error(msg);
-      setError(msg);
-      toast.error(msg);
-      setIsLoading(false);
-      setShowManualEntry(true);
+      setShowManualEntry(true); // Default to manual entry for editing
       return;
     }
 
-    try {
-      console.log('Requesting GPS location...');
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            console.log('GPS location received:', pos);
-            resolve(pos);
-          },
-          (err) => {
-            console.error('GPS error - code:', err.code, 'message:', err.message);
-            reject(err);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 8000,
-            maximumAge: 0
-          }
-        );
-      });
-
-      const { latitude, longitude, accuracy } = position.coords;
-      console.log(`GPS captured: lat=${latitude}, lng=${longitude}, accuracy=${accuracy}m`);
-
-      // Reverse geocode to get city and state
-      const cityState = await reverseGeocode(latitude, longitude);
-
-      const geoData: GeoLocation = {
-        latitude,
-        longitude,
-        city: cityState.city,
-        state: cityState.state,
-        accuracy,
-        timestamp: new Date().toISOString()
-      };
-
-      setLocation(geoData);
-      setError(null);
-      setShowManualEntry(false);
-      console.log('Location captured successfully:', geoData);
-      toast.success('Location captured successfully');
-    } catch (error) {
-      console.error('GPS capture failed, triggering IP-based fallback...', error);
-      
-      // GPS failed — immediately use IP-based geolocation as fallback
-      try {
-        console.log('Fetching IP-based location...');
-        const ipLocation = await getIPBasedLocation();
-        console.log('Using IP-based location:', ipLocation);
-        
-        const geoData: GeoLocation = {
-          latitude: 0,
-          longitude: 0,
-          city: ipLocation.city,
-          state: ipLocation.state,
-          accuracy: 0,
-          timestamp: new Date().toISOString()
-        };
-
-        setLocation(geoData);
-        setError('Using approximate location based on your IP address. GPS not available.');
-        setShowManualEntry(true);
-        toast.info('Using IP-based location as GPS fallback');
-      } catch (fallbackError) {
-        console.error('IP fallback also failed:', fallbackError);
-        
-        // If all else fails, show manual entry mode with empty location
-        console.log('All automated methods failed - enabling manual entry mode');
-        setLocation({
-          latitude: 0,
-          longitude: 0,
-          city: 'Unknown',
-          state: 'Unknown',
-          accuracy: 0,
-          timestamp: new Date().toISOString()
-        });
-        setError('Could not automatically detect location. Please enter your details manually below.');
-        setShowManualEntry(true);
-        toast.warning('Please enter your location manually');
-        
-        let errorMsg = 'Failed to get location. ';
-        
-        if (error instanceof GeolocationPositionError) {
-          console.error('GeolocationPositionError code:', error.code);
-          if (error.code === 1) {
-            errorMsg = 'Location permission denied. Please:\n1. Click the location icon in your address bar\n2. Select "Allow" for this site\n3. Click "Refresh Location" to try again';
-          } else if (error.code === 2) {
-            errorMsg = 'Location service unavailable. Please:\n1. Check internet connection\n2. Ensure location services are enabled in your browser settings\n3. Try clicking "Refresh Location" again';
-          } else if (error.code === 3) {
-            errorMsg = 'Location request timed out. Using IP-based fallback instead.';
-          }
-        } else if (error instanceof Error) {
-          console.error('General error:', error.message);
-          errorMsg += error.message;
-        }
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Test location access and auto-capture location on mount
+    // Only auto-capture if no initial location provided
     testLocationAccess();
     captureLocation();
-  }, []); // Only run once on mount
+  }, [initialLocation]); // Run when initialLocation changes (or on mount)
 
   const handleManualLatitudeChange = (value: string) => {
     const lat = parseFloat(value);
@@ -413,8 +128,8 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
                 <Label>Latitude</Label>
                 <div className="flex items-center gap-2">
                   {showManualEntry ? (
-                    <Input 
-                      value={location?.latitude?.toString() ?? ''} 
+                    <Input
+                      value={location?.latitude?.toString() ?? ''}
                       onChange={(e) => handleManualLatitudeChange(e.target.value)}
                       className="bg-white"
                       type="text"
@@ -423,8 +138,8 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
                     />
                   ) : (
                     <>
-                      <Input 
-                        value={isLoading ? 'Capturing...' : (location?.latitude?.toString() ?? '-')} 
+                      <Input
+                        value={isLoading ? 'Capturing...' : (location?.latitude?.toString() ?? '-')}
                         readOnly
                         disabled={isLoading}
                         className="bg-gray-100 text-gray-900 font-mono"
@@ -439,8 +154,8 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
                 <Label>Longitude</Label>
                 <div className="flex items-center gap-2">
                   {showManualEntry ? (
-                    <Input 
-                      value={location?.longitude?.toString() ?? ''} 
+                    <Input
+                      value={location?.longitude?.toString() ?? ''}
                       onChange={(e) => handleManualLongitudeChange(e.target.value)}
                       className="bg-white"
                       type="text"
@@ -449,8 +164,8 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
                     />
                   ) : (
                     <>
-                      <Input 
-                        value={isLoading ? 'Capturing...' : (location?.longitude?.toString() ?? '-')} 
+                      <Input
+                        value={isLoading ? 'Capturing...' : (location?.longitude?.toString() ?? '-')}
                         readOnly
                         disabled={isLoading}
                         className="bg-gray-100 text-gray-900 font-mono"
@@ -465,16 +180,16 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
                 <Label>City</Label>
                 <div className="flex items-center gap-2">
                   {showManualEntry ? (
-                    <Input 
-                      value={location?.city ?? ''} 
+                    <Input
+                      value={location?.city ?? ''}
                       onChange={(e) => handleManualCityChange(e.target.value)}
                       className="bg-white"
                       placeholder="e.g., Los Angeles"
                     />
                   ) : (
                     <>
-                      <Input 
-                        value={isLoading ? 'Fetching...' : (location?.city ?? '-')} 
+                      <Input
+                        value={isLoading ? 'Fetching...' : (location?.city ?? '-')}
                         readOnly
                         disabled={isLoading}
                         className="bg-gray-100 text-gray-900"
@@ -489,16 +204,16 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
                 <Label>State</Label>
                 <div className="flex items-center gap-2">
                   {showManualEntry ? (
-                    <Input 
-                      value={location?.state ?? ''} 
+                    <Input
+                      value={location?.state ?? ''}
                       onChange={(e) => handleManualStateChange(e.target.value)}
                       className="bg-white"
                       placeholder="e.g., California"
                     />
                   ) : (
                     <>
-                      <Input 
-                        value={isLoading ? 'Fetching...' : (location?.state ?? '-')} 
+                      <Input
+                        value={isLoading ? 'Fetching...' : (location?.state ?? '-')}
                         readOnly
                         disabled={isLoading}
                         className="bg-gray-100 text-gray-900"
@@ -511,18 +226,18 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
 
               <div className="space-y-2">
                 <Label>Location Accuracy</Label>
-                <Input 
-                  value={location ? `±${location.accuracy.toFixed(2)}m` : '-'} 
-                  readOnly 
+                <Input
+                  value={location ? `±${location.accuracy.toFixed(2)}m` : '-'}
+                  readOnly
                   className="bg-gray-50"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Timestamp</Label>
-                <Input 
-                  value={location ? new Date(location.timestamp).toLocaleString() : '-'} 
-                  readOnly 
+                <Input
+                  value={location ? new Date(location.timestamp).toLocaleString() : '-'}
+                  readOnly
                   className="bg-gray-50"
                 />
               </div>
@@ -571,7 +286,7 @@ export function GeoLocationScreen({ userInfo, onContinue, onBack }: GeoLocationS
             {/* Info Box */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Location data is automatically captured using your device's GPS. 
+                <strong>Note:</strong> Location data is automatically captured using your device's GPS.
                 Make sure location services are enabled for accurate positioning.
               </p>
             </div>

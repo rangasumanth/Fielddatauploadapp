@@ -20,7 +20,11 @@ const projectId = rawProjectId || (fallbackUrl ? resolveProjectIdFromUrl(fallbac
 const publicAnonKey = rawAnonKey || fallbackAnonKey;
 const supabaseUrl =
   fallbackUrl || (projectId ? `https://${projectId}.supabase.co` : undefined);
-const functionsBase = supabaseUrl ? `${supabaseUrl}/functions/v1/server` : undefined;
+const functionName =
+  (import.meta.env.VITE_SUPABASE_FUNCTION_NAME as string | undefined) ||
+  (import.meta.env.NEXT_PUBLIC_SUPABASE_FUNCTION_NAME as string | undefined) ||
+  'server';
+const functionsBase = supabaseUrl ? `${supabaseUrl}/functions/v1/${functionName}` : undefined;
 
 if (!supabaseUrl || !publicAnonKey) {
   console.warn(

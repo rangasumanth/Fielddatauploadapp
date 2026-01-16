@@ -7,6 +7,7 @@ import { VideoUploadScreen } from '@/app/components/VideoUploadScreen';
 import { ReviewSubmitScreen } from '@/app/components/ReviewSubmitScreen';
 import { UploadHistoryScreen } from '@/app/components/UploadHistoryScreen';
 import { Toaster } from '@/app/components/ui/sonner';
+import { toast } from 'sonner';
 
 export type UserInfo = {
   userName: string;
@@ -202,7 +203,37 @@ export default function App() {
         setHistoryRefreshToken(prev => prev + 1);
       } catch (error) {
         console.error('Error updating metadata:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to update metadata');
+        const message = error instanceof Error ? error.message : 'Failed to update metadata';
+        toast.error(message);
+        if (message.includes('404')) {
+          try {
+            const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+            if (!supabaseUrl) {
+              throw new Error('Missing Supabase URL');
+            }
+            const response = await fetch(`${supabaseUrl}/functions/v1/make-server-54e4d920/tests`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${publicAnonKey}`
+              },
+              body: JSON.stringify({
+                testId: currentTestId,
+                sessionId,
+                userInfo,
+                geoLocation,
+                metadata: formData
+              })
+            });
+            if (response.ok) {
+              updateSucceeded = true;
+              toast.success('Metadata saved');
+              setHistoryRefreshToken(prev => prev + 1);
+            }
+          } catch (fallbackError) {
+            console.error('Error creating missing test:', fallbackError);
+          }
+        }
       } finally {
         if (updateSucceeded) {
           setIsEditingExisting(false);

@@ -48,14 +48,24 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
       );
 
       if (!response.ok) {
-        throw new Error('Failed to load tests');
+        let errorMessage = `Failed to load tests (status ${response.status})`;
+        try {
+          const errorBody = await response.json();
+          errorMessage = errorBody.error || errorMessage;
+        } catch {
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       setTests(data.tests || []);
     } catch (error) {
       console.error('Error loading tests:', error);
-      toast.error('Failed to load upload history');
+      toast.error(error instanceof Error ? error.message : 'Failed to load upload history');
     } finally {
       setIsLoading(false);
     }

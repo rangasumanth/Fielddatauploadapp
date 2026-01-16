@@ -232,10 +232,6 @@ app.put("/make-server-54e4d920/tests/:testId", async (c) => {
     const test = await kv.get(`test:${testId}`);
     const { data: testRow } = await supabase.from('tests').select('*').eq('test_id', testId).maybeSingle();
 
-    if (!test && !testRow) {
-      return c.json({ error: "Test not found" }, 404);
-    }
-
     const now = new Date().toISOString();
     const base = test ?? {
       testId,

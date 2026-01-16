@@ -35,7 +35,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
       if (!functionsBase) {
         throw new Error('Missing Supabase functions base URL');
       }
-      
+
       const response = await fetch(
         `${functionsBase}${functionsRoutePrefix}/tests?ts=${Date.now()}`,
         {
@@ -84,7 +84,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
       if (!functionsBase) {
         throw new Error('Missing Supabase functions base URL');
       }
-      
+
       const response = await fetch(
         `${functionsBase}${functionsRoutePrefix}/tests/${testId}`,
         {
@@ -169,6 +169,78 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
     });
   };
 
+  const handleExportCSV = () => {
+    if (tests.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    const headers = [
+      'Test ID', 'Date', 'User Name', 'Email', 'Status', 'Created At',
+      'Device ID', 'Device Type', 'Test Cycle', 'Location Landmark',
+      'Environment', 'Time Start', 'Time End', 'Road Type',
+      'Posted Speed Limit', 'Number of Lanes', 'Traffic Density',
+      'Road Heading', 'Camera Heading', 'Lighting', 'Weather Condition',
+      'Severity', 'Measured Distance', 'Mount Height', 'Pitch Angle',
+      'Vehicle Capture View', 'External Battery', 'Firmware', 'VAR Version',
+      'Latitude', 'Longitude', 'City', 'State', 'Accuracy', 'Video File', 'Video URL'
+    ];
+
+    const rows = tests.map(test => [
+      test.testId,
+      test.metadata?.date || '',
+      test.userInfo?.userName || '',
+      test.userInfo?.email || '',
+      test.status || '',
+      test.createdAt || '',
+      test.metadata?.deviceId || '',
+      test.metadata?.deviceType || '',
+      test.metadata?.testCycle || '',
+      test.metadata?.location || '',
+      test.metadata?.environment || '',
+      test.metadata?.timeStart || '',
+      test.metadata?.timeEnd || '',
+      test.metadata?.roadType || '',
+      test.metadata?.postedSpeedLimit || '',
+      test.metadata?.numberOfLanes || '',
+      test.metadata?.trafficDensity || '',
+      test.metadata?.roadHeading || '',
+      test.metadata?.cameraHeading || '',
+      test.metadata?.lighting || '',
+      test.metadata?.weatherCondition || '',
+      test.metadata?.severity || '',
+      test.metadata?.measuredDistance || '',
+      test.metadata?.mountHeight || '',
+      test.metadata?.pitchAngle || '',
+      test.metadata?.vehicleCaptureView || '',
+      test.metadata?.externalBatteryPluggedIn ? 'Yes' : 'No',
+      test.metadata?.firmware || '',
+      test.metadata?.varVersion || '',
+      test.geoLocation?.latitude || '',
+      test.geoLocation?.longitude || '',
+      test.geoLocation?.city || '',
+      test.geoLocation?.state || '',
+      test.geoLocation?.accuracy || '',
+      test.videoFileName || '',
+      test.videoUrl || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `field_tests_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Data exported successfully');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -184,9 +256,15 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                 <p className="text-sm text-gray-500">View all test submissions</p>
               </div>
             </div>
-            <Button onClick={loadTests} variant="outline" size="sm">
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleExportCSV} variant="outline" size="sm" className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Export CSV
+              </Button>
+              <Button onClick={loadTests} variant="outline" size="sm">
+                Refresh
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -220,6 +298,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                       <TableHead>Device ID</TableHead>
                       <TableHead>Location</TableHead>
                       <TableHead>Video</TableHead>
+                      <TableHead>Road Type</TableHead>
                       <TableHead>Field Tester</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -230,71 +309,72 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                       const videoCount = test.videos?.length || (test.videoFileName || test.videoUrl ? 1 : 0);
                       const hasVideo = videoCount > 0;
                       return (
-                      <TableRow key={test.testId}>
-                        <TableCell className="font-medium">
-                          {test.metadata?.date || 'N/A'}
-                        </TableCell>
-                        <TableCell>{test.metadata?.deviceId || 'N/A'}</TableCell>
-                        <TableCell>
-                          {test.geoLocation 
-                            ? `${test.geoLocation.city}, ${test.geoLocation.state}`
-                            : 'N/A'
-                          }
-                        </TableCell>
-                        <TableCell className="truncate max-w-xs">
-                          {hasVideo ? `${videoCount} video${videoCount > 1 ? 's' : ''}` : 'N/A'}
-                        </TableCell>
-                        <TableCell>{test.userInfo?.userName || 'Unknown'}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={test.status === 'completed' ? 'default' : 'secondary'}
-                          >
-                            {test.status || 'pending'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleViewDetails(test)}
-                              title="View Details"
+                        <TableRow key={test.testId}>
+                          <TableCell className="font-medium">
+                            {test.metadata?.date || 'N/A'}
+                          </TableCell>
+                          <TableCell>{test.metadata?.deviceId || 'N/A'}</TableCell>
+                          <TableCell>
+                            {test.geoLocation
+                              ? `${test.geoLocation.city}, ${test.geoLocation.state}`
+                              : 'N/A'
+                            }
+                          </TableCell>
+                          <TableCell className="truncate max-w-xs">
+                            {hasVideo ? `${videoCount} video${videoCount > 1 ? 's' : ''}` : 'N/A'}
+                          </TableCell>
+                          <TableCell>{test.metadata?.roadType || 'N/A'}</TableCell>
+                          <TableCell>{test.userInfo?.userName || 'Unknown'}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={test.status === 'completed' ? 'default' : 'secondary'}
                             >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onEditMetadata(test)}
-                              title="Edit Metadata"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleStartUpload(test.testId)}
-                              title="Upload Video"
-                              disabled={uploadingTestId === test.testId}
-                            >
-                              {uploadingTestId === test.testId ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Upload className="w-4 h-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(test.testId)}
-                              title="Delete"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                              {test.status || 'pending'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewDetails(test)}
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onEditMetadata(test)}
+                                title="Edit Metadata"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleStartUpload(test.testId)}
+                                title="Upload Video"
+                                disabled={uploadingTestId === test.testId}
+                              >
+                                {uploadingTestId === test.testId ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Upload className="w-4 h-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(test.testId)}
+                                title="Delete"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       );
                     })}
                   </TableBody>
@@ -314,7 +394,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
               Test ID: {selectedTest?.testId}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedTest && (
             <div className="space-y-6">
               {/* User Info */}
@@ -358,7 +438,11 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
               {/* Metadata */}
               <div>
                 <h3 className="font-semibold mb-2">Test Metadata</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Date</p>
+                    <p className="font-medium">{selectedTest.metadata?.date}</p>
+                  </div>
                   <div>
                     <p className="text-gray-500">Device ID</p>
                     <p className="font-medium">{selectedTest.metadata?.deviceId}</p>
@@ -373,15 +457,83 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                   </div>
                   <div>
                     <p className="text-gray-500">Environment</p>
-                    <p className="font-medium capitalize">{selectedTest.metadata?.environment}</p>
+                    <p className="font-medium">{selectedTest.metadata?.environment}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Time Start</p>
+                    <p className="font-medium">{selectedTest.metadata?.timeStart || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Time End</p>
+                    <p className="font-medium">{selectedTest.metadata?.timeEnd || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Road Type</p>
-                    <p className="font-medium capitalize">{selectedTest.metadata?.roadType}</p>
+                    <p className="font-medium">{selectedTest.metadata?.roadType}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Posted Speed Limit</p>
+                    <p className="font-medium">{selectedTest.metadata?.postedSpeedLimit || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Number of Lanes</p>
+                    <p className="font-medium">{selectedTest.metadata?.numberOfLanes || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Traffic Density</p>
+                    <p className="font-medium">{selectedTest.metadata?.trafficDensity || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Road Heading</p>
+                    <p className="font-medium">{selectedTest.metadata?.roadHeading || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Camera Heading</p>
+                    <p className="font-medium">{selectedTest.metadata?.cameraHeading || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Lighting</p>
+                    <p className="font-medium">{selectedTest.metadata?.lighting || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Weather</p>
-                    <p className="font-medium capitalize">{selectedTest.metadata?.weatherCondition || 'N/A'}</p>
+                    <p className="font-medium">{selectedTest.metadata?.weatherCondition || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Severity</p>
+                    <p className="font-medium">{selectedTest.metadata?.severity || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Measured Distance (m)</p>
+                    <p className="font-medium">{selectedTest.metadata?.measuredDistance || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Mount Height (m)</p>
+                    <p className="font-medium">{selectedTest.metadata?.mountHeight || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Pitch Angle</p>
+                    <p className="font-medium">{selectedTest.metadata?.pitchAngle || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Vehicle Capture View</p>
+                    <p className="font-medium">{selectedTest.metadata?.vehicleCaptureView || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">External Battery</p>
+                    <p className="font-medium">{selectedTest.metadata?.externalBatteryPluggedIn ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Firmware</p>
+                    <p className="font-medium">{selectedTest.metadata?.firmware || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">VAR Version</p>
+                    <p className="font-medium">{selectedTest.metadata?.varVersion || 'N/A'}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-3">
+                    <p className="text-gray-500">Location Landmark</p>
+                    <p className="font-medium">{selectedTest.metadata?.location || 'N/A'}</p>
                   </div>
                 </div>
               </div>

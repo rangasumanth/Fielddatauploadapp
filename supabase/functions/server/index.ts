@@ -230,17 +230,62 @@ app.put("/make-server-54e4d920/tests/:testId", async (c) => {
     const testId = c.req.param('testId');
     const updates = await c.req.json();
     const test = await kv.get(`test:${testId}`);
+    const { data: testRow } = await supabase.from('tests').select('*').eq('test_id', testId).maybeSingle();
 
-    if (!test) {
+    if (!test && !testRow) {
       return c.json({ error: "Test not found" }, 404);
     }
 
     const now = new Date().toISOString();
+    const base = test ?? {
+      testId,
+      userInfo: {
+        userName: testRow?.user_name ?? '',
+        email: testRow?.email ?? ''
+      },
+      geoLocation: {
+        latitude: testRow?.geo_latitude ?? null,
+        longitude: testRow?.geo_longitude ?? null,
+        city: testRow?.geo_city ?? '',
+        state: testRow?.geo_state ?? '',
+        accuracy: testRow?.geo_accuracy ?? null,
+        timestamp: testRow?.geo_timestamp ?? null
+      },
+      metadata: {
+        date: testRow?.metadata_date ?? '',
+        deviceId: testRow?.device_id ?? '',
+        deviceType: testRow?.device_type ?? '',
+        testCycle: testRow?.test_cycle ?? '',
+        location: testRow?.location ?? '',
+        environment: testRow?.environment ?? '',
+        timeStart: testRow?.time_start ?? '',
+        timeEnd: testRow?.time_end ?? '',
+        roadType: testRow?.road_type ?? '',
+        postedSpeedLimit: testRow?.posted_speed_limit ?? '',
+        numberOfLanes: testRow?.number_of_lanes ?? '',
+        trafficDensity: testRow?.traffic_density ?? '',
+        roadHeading: testRow?.road_heading ?? '',
+        cameraHeading: testRow?.camera_heading ?? '',
+        lighting: testRow?.lighting ?? '',
+        weatherCondition: testRow?.weather_condition ?? '',
+        severity: testRow?.severity ?? '',
+        measuredDistance: testRow?.measured_distance ?? '',
+        mountHeight: testRow?.mount_height ?? '',
+        pitchAngle: testRow?.pitch_angle ?? '',
+        vehicleCaptureView: testRow?.vehicle_capture_view ?? '',
+        externalBatteryPluggedIn: testRow?.external_battery_plugged_in ?? false,
+        firmware: testRow?.firmware ?? '',
+        varVersion: testRow?.var_version ?? ''
+      },
+      status: testRow?.status ?? 'pending',
+      createdAt: testRow?.created_at ?? now,
+      updatedAt: testRow?.updated_at ?? now
+    };
     const merged = {
-      ...test,
+      ...base,
       ...updates,
       testId,
-      metadata: updates.metadata ?? test.metadata,
+      metadata: updates.metadata ?? base.metadata,
       updatedAt: now
     };
 

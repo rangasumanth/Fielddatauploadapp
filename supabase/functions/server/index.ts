@@ -246,36 +246,51 @@ app.put("/make-server-54e4d920/tests/:testId", async (c) => {
 
     await kv.set(`test:${testId}`, merged);
 
-    if (updates.metadata) {
-      const metadata = updates.metadata;
-      await supabase.from('tests').update({
-        metadata_date: metadata.date ?? null,
-        device_id: metadata.deviceId ?? null,
-        device_type: metadata.deviceType ?? null,
-        test_cycle: metadata.testCycle ?? null,
-        location: metadata.location ?? null,
-        environment: metadata.environment ?? null,
-        time_start: metadata.timeStart ?? null,
-        time_end: metadata.timeEnd ?? null,
-        road_type: metadata.roadType ?? null,
-        posted_speed_limit: metadata.postedSpeedLimit ?? null,
-        number_of_lanes: metadata.numberOfLanes ?? null,
-        traffic_density: metadata.trafficDensity ?? null,
-        road_heading: metadata.roadHeading ?? null,
-        camera_heading: metadata.cameraHeading ?? null,
-        lighting: metadata.lighting ?? null,
-        weather_condition: metadata.weatherCondition ?? null,
-        severity: metadata.severity ?? null,
-        measured_distance: metadata.measuredDistance ?? null,
-        mount_height: metadata.mountHeight ?? null,
-        pitch_angle: metadata.pitchAngle ?? null,
-        vehicle_capture_view: metadata.vehicleCaptureView ?? null,
-        external_battery_plugged_in: metadata.externalBatteryPluggedIn ?? null,
-        firmware: metadata.firmware ?? null,
-        var_version: metadata.varVersion ?? null,
-        updated_at: now
-      }).eq('test_id', testId);
-    }
+    const mergedMetadata = merged.metadata || {};
+    const mergedGeo = merged.geoLocation || {};
+    const mergedUser = merged.userInfo || {};
+
+    await supabase.from('tests').upsert({
+      test_id: testId,
+      session_id: merged.sessionId ?? null,
+      user_name: mergedUser.userName ?? null,
+      email: mergedUser.email ?? null,
+      geo_latitude: mergedGeo.latitude ?? null,
+      geo_longitude: mergedGeo.longitude ?? null,
+      geo_city: mergedGeo.city ?? null,
+      geo_state: mergedGeo.state ?? null,
+      geo_accuracy: mergedGeo.accuracy ?? null,
+      geo_timestamp: mergedGeo.timestamp ?? null,
+      metadata_date: mergedMetadata.date ?? null,
+      device_id: mergedMetadata.deviceId ?? null,
+      device_type: mergedMetadata.deviceType ?? null,
+      test_cycle: mergedMetadata.testCycle ?? null,
+      location: mergedMetadata.location ?? null,
+      environment: mergedMetadata.environment ?? null,
+      time_start: mergedMetadata.timeStart ?? null,
+      time_end: mergedMetadata.timeEnd ?? null,
+      road_type: mergedMetadata.roadType ?? null,
+      posted_speed_limit: mergedMetadata.postedSpeedLimit ?? null,
+      number_of_lanes: mergedMetadata.numberOfLanes ?? null,
+      traffic_density: mergedMetadata.trafficDensity ?? null,
+      road_heading: mergedMetadata.roadHeading ?? null,
+      camera_heading: mergedMetadata.cameraHeading ?? null,
+      lighting: mergedMetadata.lighting ?? null,
+      weather_condition: mergedMetadata.weatherCondition ?? null,
+      severity: mergedMetadata.severity ?? null,
+      measured_distance: mergedMetadata.measuredDistance ?? null,
+      mount_height: mergedMetadata.mountHeight ?? null,
+      pitch_angle: mergedMetadata.pitchAngle ?? null,
+      vehicle_capture_view: mergedMetadata.vehicleCaptureView ?? null,
+      external_battery_plugged_in: mergedMetadata.externalBatteryPluggedIn ?? null,
+      firmware: mergedMetadata.firmware ?? null,
+      var_version: mergedMetadata.varVersion ?? null,
+      latest_video_file_name: merged.videoFileName ?? null,
+      latest_video_url: merged.videoUrl ?? null,
+      status: merged.status ?? 'pending',
+      created_at: merged.createdAt ?? now,
+      updated_at: now
+    });
 
     return c.json({ success: true, testId });
   } catch (error) {

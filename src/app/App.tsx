@@ -198,6 +198,7 @@ export default function App() {
           throw new Error(errorMessage);
         }
         updateSucceeded = true;
+        toast.success('Metadata updated');
         setHistoryRefreshToken(prev => prev + 1);
       } catch (error) {
         console.error('Error updating metadata:', error);

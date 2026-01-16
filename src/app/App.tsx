@@ -85,6 +85,7 @@ export default function App() {
   const [videoFiles, setVideoFiles] = useState<File[]>([]);
   const [currentTestId, setCurrentTestId] = useState<string>('');
   const [isEditingExisting, setIsEditingExisting] = useState(false);
+  const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -164,6 +165,7 @@ export default function App() {
           const error = await response.json();
           throw new Error(error.error || 'Failed to update metadata');
         }
+        setHistoryRefreshToken(prev => prev + 1);
       } catch (error) {
         console.error('Error updating metadata:', error);
       } finally {
@@ -259,6 +261,7 @@ export default function App() {
       {currentScreen === 'upload-history' && userInfo && (
         <UploadHistoryScreen
           userInfo={userInfo}
+          refreshToken={historyRefreshToken}
           onEditMetadata={(test) => {
             setCurrentTestId(test.testId);
             setUserInfo(test.userInfo);

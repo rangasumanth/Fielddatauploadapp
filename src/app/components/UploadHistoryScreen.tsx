@@ -10,11 +10,12 @@ import type { UserInfo, TestData } from '@/app/App';
 
 type UploadHistoryScreenProps = {
   userInfo: UserInfo;
+  refreshToken: number;
   onEditMetadata: (test: TestData) => void;
   onBack: () => void;
 };
 
-export function UploadHistoryScreen({ userInfo, onEditMetadata, onBack }: UploadHistoryScreenProps) {
+export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, onBack }: UploadHistoryScreenProps) {
   const [tests, setTests] = useState<TestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTest, setSelectedTest] = useState<TestData | null>(null);
@@ -25,7 +26,7 @@ export function UploadHistoryScreen({ userInfo, onEditMetadata, onBack }: Upload
 
   useEffect(() => {
     loadTests();
-  }, []);
+  }, [refreshToken]);
 
   const loadTests = async () => {
     setIsLoading(true);

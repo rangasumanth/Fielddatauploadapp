@@ -76,6 +76,33 @@ export type Screen =
   | 'review-submit' 
   | 'upload-history';
 
+const normalizeMetadata = (input: MetadataForm | null | undefined): MetadataForm => ({
+  date: input?.date ?? '',
+  deviceId: input?.deviceId ?? '',
+  deviceType: input?.deviceType ?? '',
+  testCycle: input?.testCycle ?? '',
+  location: input?.location ?? '',
+  environment: input?.environment ?? '',
+  timeStart: input?.timeStart ?? '',
+  timeEnd: input?.timeEnd ?? '',
+  roadType: input?.roadType ?? '',
+  postedSpeedLimit: input?.postedSpeedLimit ?? '',
+  numberOfLanes: input?.numberOfLanes ?? '',
+  trafficDensity: input?.trafficDensity ?? '',
+  roadHeading: input?.roadHeading ?? '',
+  cameraHeading: input?.cameraHeading ?? '',
+  lighting: input?.lighting ?? '',
+  weatherCondition: input?.weatherCondition ?? '',
+  severity: input?.severity ?? '',
+  measuredDistance: input?.measuredDistance ?? '',
+  mountHeight: input?.mountHeight ?? '',
+  pitchAngle: input?.pitchAngle ?? '',
+  vehicleCaptureView: input?.vehicleCaptureView ?? '',
+  externalBatteryPluggedIn: input?.externalBatteryPluggedIn ?? false,
+  firmware: input?.firmware ?? '',
+  varVersion: input?.varVersion ?? ''
+});
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('user-info');
   const [sessionId, setSessionId] = useState<string>('');
@@ -275,7 +302,7 @@ export default function App() {
             setCurrentTestId(test.testId);
             setUserInfo(test.userInfo);
             setGeoLocation(test.geoLocation);
-            setMetadata(test.metadata);
+            setMetadata(normalizeMetadata(test.metadata));
             setVideoFiles([]);
             setIsEditingExisting(true);
             setCurrentScreen('metadata-form');

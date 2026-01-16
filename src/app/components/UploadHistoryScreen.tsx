@@ -31,13 +31,13 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
   const loadTests = async () => {
     setIsLoading(true);
     try {
-      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
-      if (!supabaseUrl) {
-        throw new Error('Missing Supabase URL');
+      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!functionsBase) {
+        throw new Error('Missing Supabase functions base URL');
       }
       
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/make-server-54e4d920/tests?ts=${Date.now()}`,
+        `${functionsBase}/make-server-54e4d920/tests?ts=${Date.now()}`,
         {
           headers: {
             'Authorization': `Bearer ${publicAnonKey}`
@@ -80,13 +80,13 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
     }
 
     try {
-      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
-      if (!supabaseUrl) {
-        throw new Error('Missing Supabase URL');
+      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!functionsBase) {
+        throw new Error('Missing Supabase functions base URL');
       }
       
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/make-server-54e4d920/tests/${testId}`,
+        `${functionsBase}/make-server-54e4d920/tests/${testId}`,
         {
           method: 'DELETE',
           headers: {
@@ -120,9 +120,9 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
 
     setUploadingTestId(pendingUploadTestId);
     try {
-      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
-      if (!supabaseUrl) {
-        throw new Error('Missing Supabase URL');
+      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!functionsBase) {
+        throw new Error('Missing Supabase functions base URL');
       }
 
       for (const file of files) {
@@ -131,7 +131,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
         formData.append('testId', pendingUploadTestId);
 
         const uploadResponse = await fetch(
-          `${supabaseUrl}/functions/v1/make-server-54e4d920/upload-video`,
+          `${functionsBase}/make-server-54e4d920/upload-video`,
           {
             method: 'POST',
             headers: {

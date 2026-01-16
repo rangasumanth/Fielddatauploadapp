@@ -132,12 +132,12 @@ export default function App() {
 
   const fetchSession = async (sid: string) => {
     try {
-      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
-      if (!supabaseUrl) {
-        throw new Error('Missing Supabase URL');
+      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!functionsBase) {
+        throw new Error('Missing Supabase functions base URL');
       }
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/make-server-54e4d920/session/${sid}`,
+        `${functionsBase}/make-server-54e4d920/session/${sid}`,
         {
           headers: { 'Authorization': `Bearer ${publicAnonKey}` }
         }
@@ -178,11 +178,11 @@ export default function App() {
     if (isEditingExisting) {
       let updateSucceeded = false;
       try {
-        const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
-        if (!supabaseUrl) {
-          throw new Error('Missing Supabase URL');
+        const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+        if (!functionsBase) {
+          throw new Error('Missing Supabase functions base URL');
         }
-        const response = await fetch(`${supabaseUrl}/functions/v1/make-server-54e4d920/tests/${currentTestId}`, {
+        const response = await fetch(`${functionsBase}/make-server-54e4d920/tests/${currentTestId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -212,11 +212,11 @@ export default function App() {
         }
         if (message === 'NOT_FOUND') {
           try {
-            const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
-            if (!supabaseUrl) {
-              throw new Error('Missing Supabase URL');
+            const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+            if (!functionsBase) {
+              throw new Error('Missing Supabase functions base URL');
             }
-            const response = await fetch(`${supabaseUrl}/functions/v1/make-server-54e4d920/tests`, {
+            const response = await fetch(`${functionsBase}/make-server-54e4d920/tests`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

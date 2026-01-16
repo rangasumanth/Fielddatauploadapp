@@ -20,6 +20,7 @@ const projectId = rawProjectId || (fallbackUrl ? resolveProjectIdFromUrl(fallbac
 const publicAnonKey = rawAnonKey || fallbackAnonKey;
 const supabaseUrl =
   fallbackUrl || (projectId ? `https://${projectId}.supabase.co` : undefined);
+const functionsBase = supabaseUrl ? `${supabaseUrl}/functions/v1/server` : undefined;
 
 if (!supabaseUrl || !publicAnonKey) {
   console.warn(
@@ -27,4 +28,4 @@ if (!supabaseUrl || !publicAnonKey) {
   );
 }
 
-export { projectId, publicAnonKey, supabaseUrl };
+export { projectId, publicAnonKey, supabaseUrl, functionsBase };

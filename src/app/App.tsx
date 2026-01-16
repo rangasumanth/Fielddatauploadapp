@@ -191,7 +191,10 @@ export default function App() {
           body: JSON.stringify({ metadata: formData })
         });
         if (!response.ok) {
-          let errorMessage = 'Failed to update metadata';
+          if (response.status === 404) {
+            throw new Error('NOT_FOUND');
+          }
+          let errorMessage = `Failed to update metadata (status ${response.status})`;
           try {
             const error = await response.json();
             errorMessage = error.error || errorMessage;
@@ -204,8 +207,10 @@ export default function App() {
       } catch (error) {
         console.error('Error updating metadata:', error);
         const message = error instanceof Error ? error.message : 'Failed to update metadata';
-        toast.error(message);
-        if (message.includes('404')) {
+        if (message !== 'NOT_FOUND') {
+          toast.error(message);
+        }
+        if (message === 'NOT_FOUND') {
           try {
             const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
             if (!supabaseUrl) {
@@ -229,9 +234,12 @@ export default function App() {
               updateSucceeded = true;
               toast.success('Metadata saved');
               setHistoryRefreshToken(prev => prev + 1);
+            } else {
+              toast.error('Failed to update metadata');
             }
           } catch (fallbackError) {
             console.error('Error creating missing test:', fallbackError);
+            toast.error('Failed to update metadata');
           }
         }
       } finally {

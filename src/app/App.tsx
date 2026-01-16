@@ -176,7 +176,6 @@ export default function App() {
   const handleMetadataSubmit = async (formData: MetadataForm) => {
     setMetadata(formData);
     if (isEditingExisting) {
-      let updateSucceeded = false;
       try {
         const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
         if (!functionsBase) {
@@ -201,15 +200,19 @@ export default function App() {
           } catch {}
           throw new Error(errorMessage);
         }
-        updateSucceeded = true;
-        toast.success('Metadata updated');
+        // Update succeeded - increment refresh token and navigate
         setHistoryRefreshToken(prev => prev + 1);
+        toast.success('Metadata updated');
+        setIsEditingExisting(false);
+        setCurrentScreen('upload-history');
       } catch (error) {
         console.error('Error updating metadata:', error);
         const message = error instanceof Error ? error.message : 'Failed to update metadata';
         if (message !== 'NOT_FOUND') {
           toast.error(message);
+          return; // Don't navigate on error
         }
+        // If test not found, try creating it
         if (message === 'NOT_FOUND') {
           try {
             const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
@@ -231,21 +234,20 @@ export default function App() {
               })
             });
             if (response.ok) {
-              updateSucceeded = true;
-              toast.success('Metadata saved');
+              // Creation succeeded - increment refresh token and navigate
               setHistoryRefreshToken(prev => prev + 1);
+              toast.success('Metadata saved');
+              setIsEditingExisting(false);
+              setCurrentScreen('upload-history');
             } else {
               toast.error('Failed to update metadata');
+              return; // Don't navigate on error
             }
           } catch (fallbackError) {
             console.error('Error creating missing test:', fallbackError);
             toast.error('Failed to update metadata');
+            return; // Don't navigate on error
           }
-        }
-      } finally {
-        if (updateSucceeded) {
-          setIsEditingExisting(false);
-          setCurrentScreen('upload-history');
         }
       }
       return;

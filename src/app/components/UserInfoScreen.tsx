@@ -54,7 +54,7 @@ export function UserInfoScreen({
     setIsLoading(true);
 
     try {
-      const { functionsBase, publicAnonKey } = await import(
+      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import(
         "@/utils/supabase/info"
       );
       if (!functionsBase) {
@@ -62,7 +62,7 @@ export function UserInfoScreen({
       }
 
       const response = await fetch(
-        `${functionsBase}/make-server-54e4d920/session`,
+        `${functionsBase}${functionsRoutePrefix}/session`,
         {
           method: "POST",
           headers: {

@@ -40,7 +40,7 @@ export function ReviewSubmitScreen({
     setUploadProgress(0);
     
     try {
-      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
       if (!functionsBase) {
         throw new Error('Missing Supabase functions base URL');
       }
@@ -58,7 +58,7 @@ export function ReviewSubmitScreen({
       };
 
       const metadataResponse = await fetch(
-        `${functionsBase}/make-server-54e4d920/tests`,
+        `${functionsBase}${functionsRoutePrefix}/tests`,
         {
           method: 'POST',
           headers: {
@@ -87,7 +87,7 @@ export function ReviewSubmitScreen({
           formData.append('testId', testId);
 
           const uploadResponse = await fetch(
-            `${functionsBase}/make-server-54e4d920/upload-video`,
+            `${functionsBase}${functionsRoutePrefix}/upload-video`,
             {
               method: 'POST',
               headers: {

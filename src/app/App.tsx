@@ -132,12 +132,12 @@ export default function App() {
 
   const fetchSession = async (sid: string) => {
     try {
-      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
       if (!functionsBase) {
         throw new Error('Missing Supabase functions base URL');
       }
       const response = await fetch(
-        `${functionsBase}/make-server-54e4d920/session/${sid}`,
+        `${functionsBase}${functionsRoutePrefix}/session/${sid}`,
         {
           headers: { 'Authorization': `Bearer ${publicAnonKey}` }
         }
@@ -178,11 +178,11 @@ export default function App() {
     if (isEditingExisting) {
       let updateSucceeded = false;
       try {
-        const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+        const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
         if (!functionsBase) {
           throw new Error('Missing Supabase functions base URL');
         }
-        const response = await fetch(`${functionsBase}/make-server-54e4d920/tests/${currentTestId}`, {
+        const response = await fetch(`${functionsBase}${functionsRoutePrefix}/tests/${currentTestId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -212,11 +212,11 @@ export default function App() {
         }
         if (message === 'NOT_FOUND') {
           try {
-            const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+            const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
             if (!functionsBase) {
               throw new Error('Missing Supabase functions base URL');
             }
-            const response = await fetch(`${functionsBase}/make-server-54e4d920/tests`, {
+            const response = await fetch(`${functionsBase}${functionsRoutePrefix}/tests`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

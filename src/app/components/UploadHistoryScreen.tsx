@@ -31,13 +31,13 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
   const loadTests = async () => {
     setIsLoading(true);
     try {
-      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
       if (!functionsBase) {
         throw new Error('Missing Supabase functions base URL');
       }
       
       const response = await fetch(
-        `${functionsBase}/make-server-54e4d920/tests?ts=${Date.now()}`,
+        `${functionsBase}${functionsRoutePrefix}/tests?ts=${Date.now()}`,
         {
           headers: {
             'Authorization': `Bearer ${publicAnonKey}`
@@ -80,13 +80,13 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
     }
 
     try {
-      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
       if (!functionsBase) {
         throw new Error('Missing Supabase functions base URL');
       }
       
       const response = await fetch(
-        `${functionsBase}/make-server-54e4d920/tests/${testId}`,
+        `${functionsBase}${functionsRoutePrefix}/tests/${testId}`,
         {
           method: 'DELETE',
           headers: {
@@ -120,7 +120,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
 
     setUploadingTestId(pendingUploadTestId);
     try {
-      const { functionsBase, publicAnonKey } = await import('@/utils/supabase/info');
+      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
       if (!functionsBase) {
         throw new Error('Missing Supabase functions base URL');
       }
@@ -131,7 +131,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
         formData.append('testId', pendingUploadTestId);
 
         const uploadResponse = await fetch(
-          `${functionsBase}/make-server-54e4d920/upload-video`,
+          `${functionsBase}${functionsRoutePrefix}/upload-video`,
           {
             method: 'POST',
             headers: {

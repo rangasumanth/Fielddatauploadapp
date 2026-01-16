@@ -543,7 +543,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                 <h3 className="font-semibold mb-2">Video Information</h3>
                 <div className="space-y-2 text-sm">
                   {selectedTest.videos && selectedTest.videos.length > 0 ? (
-                    selectedTest.videos.map((video, index) => (
+                    selectedTest.videos.map((video: { fileName: string; url?: string }, index: number) => (
                       <div key={`${video.fileName}-${index}`}>
                         <p className="text-gray-500">Video {index + 1}</p>
                         <p className="font-medium break-all">{video.fileName}</p>

@@ -9,7 +9,9 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
+import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { toast } from "sonner";
+import { User, Mail, CheckCircle, Loader2 } from "lucide-react";
 import type { UserInfo } from "@/app/App";
 
 const USERS = [
@@ -88,61 +90,122 @@ export function UserInfoScreen({
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">
-            Field Tester Details
-          </CardTitle>
-          <CardDescription>
-            Please enter your information to begin field testing
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="userName">User Name *</Label>
-              <select
-                id="userName"
-                value={userName}
-                onChange={(e) =>
-                  handleUserSelect(e.target.value)
-                }
-                required
-                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md animate-scale-in">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-full mb-4 shadow-lg-custom">
+            <User className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome to Field Testing
+          </h1>
+          <p className="text-gray-600">
+            Please select your information to begin your testing session
+          </p>
+        </div>
+
+        <Card className="shadow-xl-custom border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-center text-gray-800">
+              Tester Information
+            </CardTitle>
+            <CardDescription className="text-center text-gray-500">
+              Choose your profile from the list below
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="userName" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Select Tester *
+                </Label>
+                <div className="relative">
+                  <select
+                    id="userName"
+                    value={userName}
+                    onChange={(e) => handleUserSelect(e.target.value)}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 pr-8 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:border-gray-400"
+                  >
+                    <option value="" disabled>
+                      Choose your name...
+                    </option>
+                    {USERS.map((user) => (
+                      <option key={user.email} value={user.name}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <CheckCircle className={`w-4 h-4 ${userName ? 'text-green-500' : 'text-gray-300'}`} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    readOnly
+                    className="bg-gray-50 border-gray-200 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 pr-10"
+                  />
+                  {email && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {userName && (
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-in">
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback className="bg-green-100 text-green-700 font-medium">
+                      {userName.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-medium text-green-800">{userName}</p>
+                    <p className="text-sm text-green-600">{email}</p>
+                  </div>
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-primary hover:opacity-90 transition-all duration-200 shadow-md-custom font-medium text-white"
+                disabled={isLoading || !userName}
               >
-                <option value="" disabled>
-                  Select your name
-                </option>
-                {USERS.map((user) => (
-                  <option key={user.email} value={user.name}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Setting up your session...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Start Testing Session
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                readOnly
-                className="bg-gray-50"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || !userName}
-            >
-              {isLoading ? "Loading..." : "Continue"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-500">
+            Your session will be automatically saved for future use
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -6,8 +6,10 @@ import { Label } from '@/app/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Switch } from '@/app/components/ui/switch';
 import { Separator } from '@/app/components/ui/separator';
+import { Progress } from '@/app/components/ui/progress';
+import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, User, MapPin, Clock, Car, Cloud, Camera, Cpu, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import type { UserInfo, GeoLocation, MetadataForm } from '@/app/App';
 
 type MetadataFormScreenProps = {

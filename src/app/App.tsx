@@ -1,3 +1,4 @@
+// Field Data Upload App - Main Application Component
 import { useState, useEffect } from 'react';
 import { UserInfoScreen } from '@/app/components/UserInfoScreen';
 import { DashboardScreen } from '@/app/components/DashboardScreen';
@@ -284,7 +285,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {currentScreen === 'user-info' && (
         <UserInfoScreen
           sessionId={sessionId}

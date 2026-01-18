@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
+import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
-import { MapPin, RefreshCw, ArrowLeft, Check } from 'lucide-react';
+import { MapPin, RefreshCw, ArrowLeft, Check, Navigation, Globe, AlertCircle, Loader2 } from 'lucide-react';
 import type { UserInfo, GeoLocation } from '@/app/App';
 
 type GeoLocationScreenProps = {
@@ -371,225 +372,319 @@ export function GeoLocationScreen({ userInfo, initialLocation, onContinue, onBac
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm-custom">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={onBack}>
+            <div className="flex items-center gap-4 animate-slide-in-right">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onBack}
+                className="hover:bg-gray-100 transition-colors duration-200"
+              >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Geo-Location Capture</h1>
-                <p className="text-sm text-gray-500">{userInfo.userName}</p>
+                <h1 className="text-2xl font-bold text-gray-900">Location Capture</h1>
+                <p className="text-sm text-gray-600">{userInfo.userName}</p>
               </div>
+            </div>
+            <div className="flex items-center gap-3 animate-fade-in">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-green-700">GPS Ready</span>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-6 h-6 text-blue-600" />
-              Location Information
-            </CardTitle>
-            <CardDescription>
-              Your device location is automatically captured for test documentation
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Error Alert */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-900 whitespace-pre-wrap">
-                  <strong>⚠️ Error:</strong> {error}
-                </p>
-              </div>
-            )}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Welcome Message */}
+        <div className="text-center mb-12 animate-slide-in-bottom">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-primary rounded-full mb-6 shadow-lg-custom">
+            <MapPin className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Capture Your Location
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            We'll automatically detect your GPS coordinates and location details for accurate field test documentation.
+          </p>
+        </div>
 
-            {/* Manual Entry Alert */}
-            {showManualEntry && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-900">
-                  <strong>📍 Manual Entry:</strong> Please enter your location details below, or try clicking "Refresh Location" again after granting permission.
-                </p>
-              </div>
-            )}
-
-            {/* Location Data Display */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Latitude</Label>
-                <div className="flex items-center gap-2">
-                  {showManualEntry ? (
-                    <Input
-                      value={location?.latitude?.toString() ?? ''}
-                      onChange={(e) => handleManualLatitudeChange(e.target.value)}
-                      className="bg-white"
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="e.g., 34.0522"
-                    />
-                  ) : (
-                    <>
-                      <Input
-                        value={isLoading ? 'Capturing...' : (location?.latitude?.toString() ?? '-')}
-                        readOnly
-                        disabled={isLoading}
-                        className="bg-gray-100 text-gray-900 font-mono"
-                      />
-                      {location && <Check className="w-5 h-5 text-green-600" />}
-                    </>
-                  )}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Location Card */}
+          <div className="lg:col-span-2">
+            <Card className="shadow-xl-custom border-0 bg-white/80 backdrop-blur-sm animate-scale-in">
+              <CardHeader className="pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-primary rounded-xl">
+                    <Navigation className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl font-bold text-gray-900">Location Details</CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Precise coordinates and location information for your test
+                    </CardDescription>
+                  </div>
                 </div>
-              </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Error Alert */}
+                {error && (
+                  <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl animate-fade-in">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-red-900 mb-1">Location Error</h4>
+                      <p className="text-sm text-red-800 whitespace-pre-wrap">{error}</p>
+                    </div>
+                  </div>
+                )}
 
-              <div className="space-y-2">
-                <Label>Longitude</Label>
-                <div className="flex items-center gap-2">
-                  {showManualEntry ? (
+                {/* Manual Entry Alert */}
+                {showManualEntry && (
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl animate-fade-in">
+                    <MapPin className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-amber-900 mb-1">Manual Entry Mode</h4>
+                      <p className="text-sm text-amber-800">
+                        Please enter your location details below, or try clicking "Refresh Location" again after granting permission.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Location Data Display */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
+                      Latitude
+                    </Label>
+                    <div className="relative">
+                      {showManualEntry ? (
+                        <Input
+                          value={location?.latitude?.toString() ?? ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleManualLatitudeChange(e.target.value)}
+                          className="bg-white border-gray-300 focus:ring-primary focus:border-primary transition-all duration-200"
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="e.g., 34.0522"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <Input
+                            value={isLoading ? 'Capturing...' : (location?.latitude?.toString() ?? '-')}
+                            readOnly
+                            disabled={isLoading}
+                            className="bg-gray-50 text-gray-900 font-mono border-gray-200"
+                          />
+                          {isLoading && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+                          {location && !isLoading && <Check className="w-5 h-5 text-green-600" />}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
+                      Longitude
+                    </Label>
+                    <div className="relative">
+                      {showManualEntry ? (
+                        <Input
+                          value={location?.longitude?.toString() ?? ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleManualLongitudeChange(e.target.value)}
+                          className="bg-white border-gray-300 focus:ring-primary focus:border-primary transition-all duration-200"
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="e.g., -118.2437"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <Input
+                            value={isLoading ? 'Capturing...' : (location?.longitude?.toString() ?? '-')}
+                            readOnly
+                            disabled={isLoading}
+                            className="bg-gray-50 text-gray-900 font-mono border-gray-200"
+                          />
+                          {isLoading && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+                          {location && !isLoading && <Check className="w-5 h-5 text-green-600" />}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      City
+                    </Label>
+                    <div className="relative">
+                      {showManualEntry ? (
+                        <Input
+                          value={location?.city ?? ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleManualCityChange(e.target.value)}
+                          className="bg-white border-gray-300 focus:ring-primary focus:border-primary transition-all duration-200"
+                          placeholder="e.g., Los Angeles"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <Input
+                            value={isLoading ? 'Fetching...' : (location?.city ?? '-')}
+                            readOnly
+                            disabled={isLoading}
+                            className="bg-gray-50 text-gray-900 border-gray-200"
+                          />
+                          {isLoading && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+                          {location && location.city !== 'Unknown' && !isLoading && <Check className="w-5 h-5 text-green-600" />}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      State
+                    </Label>
+                    <div className="relative">
+                      {showManualEntry ? (
+                        <Input
+                          value={location?.state ?? ''}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleManualStateChange(e.target.value)}
+                          className="bg-white border-gray-300 focus:ring-primary focus:border-primary transition-all duration-200"
+                          placeholder="e.g., California"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <Input
+                            value={isLoading ? 'Fetching...' : (location?.state ?? '-')}
+                            readOnly
+                            disabled={isLoading}
+                            className="bg-gray-50 text-gray-900 border-gray-200"
+                          />
+                          {isLoading && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+                          {location && location.state !== 'Unknown' && !isLoading && <Check className="w-5 h-5 text-green-600" />}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Navigation className="w-4 h-4" />
+                      Accuracy
+                    </Label>
                     <Input
-                      value={location?.longitude?.toString() ?? ''}
-                      onChange={(e) => handleManualLongitudeChange(e.target.value)}
-                      className="bg-white"
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="e.g., -118.2437"
+                      value={location ? `±${location.accuracy.toFixed(2)}m` : '-'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200"
                     />
-                  ) : (
-                    <>
-                      <Input
-                        value={isLoading ? 'Capturing...' : (location?.longitude?.toString() ?? '-')}
-                        readOnly
-                        disabled={isLoading}
-                        className="bg-gray-100 text-gray-900 font-mono"
-                      />
-                      {location && <Check className="w-5 h-5 text-green-600" />}
-                    </>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label>City</Label>
-                <div className="flex items-center gap-2">
-                  {showManualEntry ? (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-gray-700">Timestamp</Label>
                     <Input
-                      value={location?.city ?? ''}
-                      onChange={(e) => handleManualCityChange(e.target.value)}
-                      className="bg-white"
-                      placeholder="e.g., Los Angeles"
+                      value={location ? new Date(location.timestamp).toLocaleString() : '-'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-sm"
                     />
-                  ) : (
-                    <>
-                      <Input
-                        value={isLoading ? 'Fetching...' : (location?.city ?? '-')}
-                        readOnly
-                        disabled={isLoading}
-                        className="bg-gray-100 text-gray-900"
-                      />
-                      {location && location.city !== 'Unknown' && <Check className="w-5 h-5 text-green-600" />}
-                    </>
-                  )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>State</Label>
-                <div className="flex items-center gap-2">
-                  {showManualEntry ? (
-                    <Input
-                      value={location?.state ?? ''}
-                      onChange={(e) => handleManualStateChange(e.target.value)}
-                      className="bg-white"
-                      placeholder="e.g., California"
-                    />
-                  ) : (
-                    <>
-                      <Input
-                        value={isLoading ? 'Fetching...' : (location?.state ?? '-')}
-                        readOnly
-                        disabled={isLoading}
-                        className="bg-gray-100 text-gray-900"
-                      />
-                      {location && location.state !== 'Unknown' && <Check className="w-5 h-5 text-green-600" />}
-                    </>
-                  )}
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3 pt-6">
+                  <Button
+                    onClick={captureLocation}
+                    disabled={isLoading}
+                    variant="outline"
+                    className="flex items-center gap-2 border-2 border-gray-300 hover:border-primary hover:bg-primary/5 transition-all duration-200"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    {isLoading ? 'Refreshing...' : 'Refresh Location'}
+                  </Button>
+
+                  <Button
+                    onClick={handleContinue}
+                    disabled={!location || isLoading}
+                    className="flex items-center gap-2 ml-auto bg-gradient-primary hover:opacity-90 transition-all duration-200 shadow-lg-custom"
+                  >
+                    <Check className="w-4 h-4" />
+                    Continue to Metadata
+                  </Button>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Location Accuracy</Label>
-                <Input
-                  value={location ? `±${location.accuracy.toFixed(2)}m` : '-'}
-                  readOnly
-                  className="bg-gray-50"
-                />
-              </div>
+                {/* Info Box */}
+                <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-1">Location Services</h4>
+                    <p className="text-sm text-blue-800">
+                      Location data is automatically captured using your device's GPS. Make sure location services are enabled for accurate positioning.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              <div className="space-y-2">
-                <Label>Timestamp</Label>
-                <Input
-                  value={location ? new Date(location.timestamp).toLocaleString() : '-'}
-                  readOnly
-                  className="bg-gray-50"
-                />
-              </div>
+            {/* Sidebar - Status and Debugging */}
+            <div className="space-y-6">
+              {/* Current Status */}
+              <Card className="shadow-lg-custom border-0 bg-white/80 backdrop-blur-sm animate-slide-in-right">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-bold text-gray-900">Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">GPS Status</span>
+                    <Badge className={`px-3 py-1 ${isLoading ? 'bg-yellow-500' : location ? 'bg-green-500' : 'bg-red-500'} text-white`}>
+                      {isLoading ? 'Capturing' : location ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Location Mode</span>
+                    <Badge variant={showManualEntry ? "secondary" : "default"} className="px-3 py-1">
+                      {showManualEntry ? 'Manual' : 'Automatic'}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Debug Actions */}
+              <Card className="shadow-lg-custom border-0 bg-white/80 backdrop-blur-sm animate-fade-in">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-bold text-gray-900">Debug Tools</CardTitle>
+                  <CardDescription className="text-gray-600">Advanced diagnostic options</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button
+                    onClick={testLocationAccess}
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start border-gray-300 hover:border-primary hover:bg-primary/5 transition-all duration-200"
+                  >
+                    <Navigation className="w-4 h-4 mr-2" />
+                    Test Location Access
+                  </Button>
+
+                  <Button
+                    onClick={testBackendConnection}
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start border-gray-300 hover:border-primary hover:bg-primary/5 transition-all duration-200"
+                  >
+                    <Globe className="w-4 h-4 mr-2" />
+                    Test Backend
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 flex-wrap">
-              <Button
-                onClick={captureLocation}
-                disabled={isLoading}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? 'Refreshing...' : 'Refresh Location'}
-              </Button>
-
-              <Button
-                onClick={testLocationAccess}
-                variant="secondary"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                📋 Diagnose (Check Console)
-              </Button>
-
-              <Button
-                onClick={testBackendConnection}
-                variant="secondary"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                🔗 Test Backend
-              </Button>
-
-              <Button
-                onClick={handleContinue}
-                disabled={!location || isLoading}
-                className="flex items-center gap-2 ml-auto"
-              >
-                <Check className="w-4 h-4" />
-                Continue to Metadata
-              </Button>
-            </div>
-
-            {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Location data is automatically captured using your device's GPS.
-                Make sure location services are enabled for accurate positioning.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import type { Context } from "npm:hono";
 const app = new Hono().basePath('/server');
 
 // Initialize Supabase client
@@ -28,7 +29,7 @@ app.use(
 );
 
 // Debug 404 handler
-app.notFound((c) => {
+app.notFound((c: Context) => {
   return c.json({
     error: 'Not Found',
     message: 'Route not found',
@@ -50,12 +51,12 @@ const BUCKET_NAME = 'make-54e4d920-field-videos';
 })();
 
 // Health check endpoint
-app.get("/health", (c) => {
+app.get("/health", (c: Context) => {
   return c.json({ status: "ok" });
 });
 
 // Test endpoint for debugging
-app.get("/test", (c) => {
+app.get("/test", (c: Context) => {
   return c.json({
     message: "Test endpoint working",
     timestamp: new Date().toISOString(),
@@ -64,7 +65,7 @@ app.get("/test", (c) => {
 });
 
 // Get location data from IP (server-side fetch bypasses firewall)
-app.get("/location/ip", async (c) => {
+app.get("/location/ip", async (c: Context) => {
   try {
     console.log("Fetching IP-based location...");
 
@@ -124,7 +125,7 @@ app.get("/location/ip", async (c) => {
 });
 
 // Session Management - Store user info
-app.post("/session", async (c) => {
+app.post("/session", async (c: Context) => {
   try {
     const { sessionId, userName, email } = await c.req.json();
 
@@ -142,7 +143,7 @@ app.post("/session", async (c) => {
 });
 
 // Get session info
-app.get("/session/:sessionId", async (c) => {
+app.get("/session/:sessionId", async (c: Context) => {
   try {
     const sessionId = c.req.param('sessionId');
     const session = await kv.get(`session:${sessionId}`);
@@ -159,7 +160,7 @@ app.get("/session/:sessionId", async (c) => {
 });
 
 // Submit test data
-app.post("/tests", async (c) => {
+app.post("/tests", async (c: Context) => {
   try {
     const testData = await c.req.json();
 
@@ -238,7 +239,7 @@ app.post("/tests", async (c) => {
 });
 
 // Update test metadata
-app.put("/tests/:testId", async (c) => {
+app.put("/tests/:testId", async (c: Context) => {
   try {
     const testId = c.req.param('testId');
     const updates = await c.req.json();
@@ -356,7 +357,7 @@ app.put("/tests/:testId", async (c) => {
 });
 
 // Get test by ID
-app.get("/tests/:testId", async (c) => {
+app.get("/tests/:testId", async (c: Context) => {
   try {
     const testId = c.req.param('testId');
     const { data: testRow } = await supabase.from('tests').select('*').eq('test_id', testId).maybeSingle();
@@ -405,7 +406,7 @@ app.get("/tests/:testId", async (c) => {
         varVersion: testRow.var_version,
         comments: testRow.comment
       },
-      videos: (videos || []).map((video) => ({
+      videos: (videos || []).map((video: any) => ({
         fileName: video.file_name,
         url: video.url,
         size: video.size,
@@ -427,20 +428,20 @@ app.get("/tests/:testId", async (c) => {
 });
 
 // Get all tests
-app.get("/tests", async (c) => {
+app.get("/tests", async (c: Context) => {
   try {
     const { data: testRows } = await supabase.from('tests').select('*').order('created_at', { ascending: false });
     const { data: videoRows } = await supabase.from('test_videos').select('*').order('uploaded_at', { ascending: true });
 
     const videosByTest: Record<string, any[]> = {};
-    (videoRows || []).forEach((video) => {
+    (videoRows || []).forEach((video: any) => {
       if (!videosByTest[video.test_id]) {
         videosByTest[video.test_id] = [];
       }
       videosByTest[video.test_id].push(video);
     });
 
-    const tests = (testRows || []).map((testRow) => ({
+    const tests = (testRows || []).map((testRow: any) => ({
       testId: testRow.test_id,
       userInfo: { userName: testRow.user_name, email: testRow.email },
       geoLocation: {
@@ -500,7 +501,7 @@ app.get("/tests", async (c) => {
 });
 
 // Upload video to Supabase Storage
-app.post("/upload-video", async (c) => {
+app.post("/upload-video", async (c: Context) => {
   try {
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
@@ -587,7 +588,7 @@ app.post("/upload-video", async (c) => {
 });
 
 // Delete test
-app.delete("/tests/:testId", async (c) => {
+app.delete("/tests/:testId", async (c: Context) => {
   try {
     const testId = c.req.param('testId');
     const test = await kv.get(`test:${testId}`);
@@ -623,6 +624,91 @@ app.delete("/tests/:testId", async (c) => {
   } catch (error) {
     console.log(`Error deleting test: ${error}`);
     return c.json({ error: `Failed to delete test: ${error}` }, 500);
+  }
+});
+
+// Delete single video from a test
+app.delete("/tests/:testId/videos/:fileName", async (c: Context) => {
+  try {
+    const testId = c.req.param('testId');
+    const fileName = c.req.param('fileName');
+
+    if (!testId || !fileName) {
+      return c.json({ error: "testId and fileName are required" }, 400);
+    }
+
+    const decodedFileName = decodeURIComponent(fileName);
+
+    // Fetch test to ensure it exists
+    const { data: testRow } = await supabase.from('tests').select('*').eq('test_id', testId).maybeSingle();
+    if (!testRow) {
+      return c.json({ error: "Test not found" }, 404);
+    }
+
+    // Ensure video exists for this test
+    const { data: videoRows } = await supabase
+      .from('test_videos')
+      .select('*')
+      .eq('test_id', testId)
+      .eq('file_name', decodedFileName);
+
+    if (!videoRows || videoRows.length === 0) {
+      return c.json({ error: "Video not found for test" }, 404);
+    }
+
+    // Delete from storage
+    await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([decodedFileName]);
+
+    // Delete test_videos row
+    await supabase
+      .from('test_videos')
+      .delete()
+      .eq('test_id', testId)
+      .eq('file_name', decodedFileName);
+
+    // Determine latest remaining video
+    const { data: remainingVideos } = await supabase
+      .from('test_videos')
+      .select('*')
+      .eq('test_id', testId)
+      .order('uploaded_at', { ascending: false })
+      .limit(1);
+
+    const nextLatest = remainingVideos && remainingVideos.length > 0 ? remainingVideos[0] : null;
+
+    // Update tests table latest_video fields
+    await supabase
+      .from('tests')
+      .update({
+        latest_video_file_name: nextLatest ? nextLatest.file_name : null,
+        latest_video_url: nextLatest ? nextLatest.url : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('test_id', testId);
+
+    // Update KV cache
+    const cacheKey = `test:${testId}`;
+    const cached = await kv.get(cacheKey);
+    if (cached) {
+      const filteredVideos = Array.isArray(cached.videos)
+        ? cached.videos.filter((v: { fileName?: string }) => v?.fileName !== decodedFileName)
+        : [];
+      const updatedCache = {
+        ...cached,
+        videos: filteredVideos,
+        videoFileName: nextLatest ? nextLatest.file_name : null,
+        videoUrl: nextLatest ? nextLatest.url : null,
+        updatedAt: new Date().toISOString(),
+      };
+      await kv.set(cacheKey, updatedCache);
+    }
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.log(`Error deleting video: ${error}`);
+    return c.json({ error: `Failed to delete video: ${error}` }, 500);
   }
 });
 

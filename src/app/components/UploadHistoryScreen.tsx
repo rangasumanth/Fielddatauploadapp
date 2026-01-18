@@ -22,6 +22,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [pendingUploadTestId, setPendingUploadTestId] = useState<string | null>(null);
   const [uploadingTestId, setUploadingTestId] = useState<string | null>(null);
+  const [deletingVideoKey, setDeletingVideoKey] = useState<string | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -110,6 +111,45 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
   const handleStartUpload = (testId: string) => {
     setPendingUploadTestId(testId);
     uploadInputRef.current?.click();
+  };
+
+  const handleDeleteVideo = async (testId: string, fileName: string) => {
+    if (isLoading) return;
+
+    const confirmDelete = window.confirm('Delete this video? This will remove it from storage and history.');
+    if (!confirmDelete) return;
+
+    const videoKey = `${testId}:${fileName}`;
+    setDeletingVideoKey(videoKey);
+    try {
+      const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!functionsBase) {
+        throw new Error('Missing Supabase functions base URL');
+      }
+
+      const response = await fetch(
+        `${functionsBase}${functionsRoutePrefix}/tests/${testId}/videos/${encodeURIComponent(fileName)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${publicAnonKey}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error || 'Failed to delete video');
+      }
+
+      toast.success('Video deleted');
+      await loadTests();
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete video');
+    } finally {
+      setDeletingVideoKey(null);
+    }
   };
 
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -555,17 +595,33 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                       <div key={`${video.fileName}-${index}`}>
                         <p className="text-gray-500">Video {index + 1}</p>
                         <p className="font-medium break-all">{video.fileName}</p>
-                        {video.url && (
+                        <div className="flex gap-2 mt-2">
+                          {video.url && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(video.url, '_blank')}
+                              className="flex-1"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Open Video
+                            </Button>
+                          )}
                           <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(video.url, '_blank')}
-                            className="w-full mt-2"
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteVideo(selectedTest.testId, video.fileName)}
+                            disabled={deletingVideoKey === `${selectedTest.testId}:${video.fileName}` || isLoading}
+                            title="Delete video"
                           >
-                            <Download className="w-4 h-4 mr-2" />
-                            Open Video
+                            {deletingVideoKey === `${selectedTest.testId}:${video.fileName}` ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
                           </Button>
-                        )}
+                        </div>
                       </div>
                     ))
                   ) : selectedTest.videoFileName || selectedTest.videoUrl ? (

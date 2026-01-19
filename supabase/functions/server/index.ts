@@ -672,10 +672,16 @@ app.delete("/tests/:testId/videos/:fileName", async (c: Context) => {
       .from(BUCKET_NAME)
       .remove([decodedFileName]);
 
-    // If object is already missing (404), treat as success to allow DB cleanup
-    // Note: Supabase returns statusCode on StorageError; guard with type check
+    // If object is already missing (404-like), treat as success to allow DB cleanup
+    // Note: Supabase Storage errors may surface as statusCode, status, or message text
     const statusCode = (removeError as any)?.statusCode;
-    if (removeError && statusCode !== 404) {
+    const status = (removeError as any)?.status;
+    const message = (removeError as any)?.message as string | undefined;
+    const isNotFound = statusCode === 404
+      || status === 404
+      || (typeof message === 'string' && /not found/i.test(message));
+
+    if (removeError && !isNotFound) {
       console.log(`Storage remove error for ${decodedFileName}: ${removeError.message}`);
       return c.json({ error: `Failed to delete file from storage: ${removeError.message}` }, 500);
     }

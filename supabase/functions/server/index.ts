@@ -500,7 +500,7 @@ app.get("/tests", async (c: Context) => {
   }
 });
 
-// Upload video to Supabase Storage
+// Upload video to Supabase Storage (one row per video in test_videos)
 app.post("/upload-video", async (c: Context) => {
   try {
     const formData = await c.req.formData();
@@ -511,22 +511,32 @@ app.post("/upload-video", async (c: Context) => {
       return c.json({ error: "file and testId are required" }, 400);
     }
 
+    // Ensure test exists
+    const { data: testRow } = await supabase
+      .from('tests')
+      .select('test_id')
+      .eq('test_id', testId)
+      .maybeSingle();
+    if (!testRow) {
+      return c.json({ error: "Test not found" }, 404);
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
 
     const now = new Date().toISOString();
     const fileName = `${testId}-${Date.now()}-${file.name}`;
 
-    const { data, error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(fileName, buffer, {
         contentType: file.type,
         upsert: false
       });
 
-    if (error) {
-      console.log(`Supabase storage error: ${error.message}`);
-      return c.json({ error: `Upload failed: ${error.message}` }, 500);
+    if (uploadError) {
+      console.log(`Supabase storage error: ${uploadError.message}`);
+      return c.json({ error: `Upload failed: ${uploadError.message}` }, 500);
     }
 
     // Generate signed URL (valid for 1 year)
@@ -534,31 +544,7 @@ app.post("/upload-video", async (c: Context) => {
       .from(BUCKET_NAME)
       .createSignedUrl(fileName, 31536000);
 
-    // Update test with video info
-    const test = await kv.get(`test:${testId}`);
-    if (!test) {
-      return c.json({ error: "Test not found" }, 404);
-    }
-
-    const existingVideos = Array.isArray(test.videos) ? test.videos : [];
-    const nextVideo = {
-      fileName,
-      url: signedUrlData?.signedUrl,
-      size: file.size,
-      type: file.type,
-      uploadedAt: now
-    };
-
-    await kv.set(`test:${testId}`, {
-      ...test,
-      videos: [...existingVideos, nextVideo],
-      videoFileName: fileName,
-      videoUrl: signedUrlData?.signedUrl,
-      videoUploadedAt: now,
-      status: 'completed',
-      updatedAt: now
-    });
-
+    // Insert into test_videos (one row per video)
     await supabase.from('test_videos').insert({
       test_id: testId,
       file_name: fileName,
@@ -568,6 +554,7 @@ app.post("/upload-video", async (c: Context) => {
       uploaded_at: now
     });
 
+    // Update tests latest video fields
     await supabase.from('tests').update({
       latest_video_file_name: fileName,
       latest_video_url: signedUrlData?.signedUrl,
@@ -575,6 +562,28 @@ app.post("/upload-video", async (c: Context) => {
       status: 'completed',
       updated_at: now
     }).eq('test_id', testId);
+
+    // Update KV cache if present
+    const cached = await kv.get(`test:${testId}`);
+    if (cached) {
+      const existingVideos = Array.isArray(cached.videos) ? cached.videos : [];
+      const nextVideo = {
+        fileName,
+        url: signedUrlData?.signedUrl,
+        size: file.size,
+        type: file.type,
+        uploadedAt: now
+      };
+      await kv.set(`test:${testId}`, {
+        ...cached,
+        videos: [...existingVideos, nextVideo],
+        videoFileName: fileName,
+        videoUrl: signedUrlData?.signedUrl,
+        videoUploadedAt: now,
+        status: 'completed',
+        updatedAt: now
+      });
+    }
 
     return c.json({
       success: true,

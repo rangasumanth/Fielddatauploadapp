@@ -127,19 +127,24 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
         throw new Error('Missing Supabase functions base URL');
       }
 
-      const response = await fetch(
-        `${functionsBase}${functionsRoutePrefix}/tests/${testId}/videos/${encodeURIComponent(fileName)}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`
-          }
+      const target = `${functionsBase}${functionsRoutePrefix}/tests/${testId}/videos/${encodeURIComponent(fileName)}`;
+      const response = await fetch(target, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${publicAnonKey}`
         }
-      );
+      });
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.error || 'Failed to delete video');
+        let message = 'Failed to delete video';
+        try {
+          const errorBody = await response.json();
+          message = errorBody?.error || message;
+        } catch {
+          const text = await response.text();
+          if (text) message = text;
+        }
+        throw new Error(message);
       }
 
       toast.success('Video deleted');

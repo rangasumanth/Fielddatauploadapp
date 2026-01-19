@@ -407,6 +407,7 @@ app.get("/tests/:testId", async (c: Context) => {
         comments: testRow.comment
       },
       videos: (videos || []).map((video: any) => ({
+        id: video.id,
         fileName: video.file_name,
         url: video.url,
         size: video.size,
@@ -480,6 +481,7 @@ app.get("/tests", async (c: Context) => {
         comments: testRow.comment
       },
       videos: (videosByTest[testRow.test_id] || []).map((video) => ({
+        id: video.id,
         fileName: video.file_name,
         url: video.url,
         size: video.size,

@@ -667,7 +667,7 @@ app.delete("/tests/:testId/videos/:fileName", async (c: Context) => {
       return c.json({ error: "Video not found for test" }, 404);
     }
 
-    // Delete from storage
+    // Delete from storage using exact file name (no folder prefix)
     await supabase.storage
       .from(BUCKET_NAME)
       .remove([decodedFileName]);

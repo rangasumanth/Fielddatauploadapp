@@ -668,9 +668,17 @@ app.delete("/tests/:testId/videos/:fileName", async (c: Context) => {
     }
 
     // Delete from storage using exact file name (no folder prefix)
-    await supabase.storage
+    const { error: removeError } = await supabase.storage
       .from(BUCKET_NAME)
       .remove([decodedFileName]);
+
+    // If object is already missing (404), treat as success to allow DB cleanup
+    // Note: Supabase returns statusCode on StorageError; guard with type check
+    const statusCode = (removeError as any)?.statusCode;
+    if (removeError && statusCode !== 404) {
+      console.log(`Storage remove error for ${decodedFileName}: ${removeError.message}`);
+      return c.json({ error: `Failed to delete file from storage: ${removeError.message}` }, 500);
+    }
 
     // Delete test_videos row
     await supabase

@@ -270,6 +270,28 @@ export default function App() {
     setCurrentScreen('dashboard');
   };
 
+  const handleLogout = () => {
+    // Clear persisted session
+    localStorage.removeItem('fieldTestSessionId');
+
+    // Reset client state
+    setUserInfo(null);
+    setGeoLocation(null);
+    setMetadata(null);
+    setVideoFiles([]);
+    setCurrentTestId('');
+    setIsEditingExisting(false);
+    setHistoryRefreshToken(0);
+
+    // Generate a fresh session id for the next login
+    const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setSessionId(newSessionId);
+    localStorage.setItem('fieldTestSessionId', newSessionId);
+
+    // Return to User Info screen
+    setCurrentScreen('user-info');
+  };
+
   const handleViewHistory = () => {
     setCurrentScreen('upload-history');
   };
@@ -298,6 +320,7 @@ export default function App() {
           userInfo={userInfo}
           onStartNewTest={handleStartNewTest}
           onViewHistory={handleViewHistory}
+          onLogout={handleLogout}
         />
       )}
 
@@ -340,6 +363,7 @@ export default function App() {
           onSubmitComplete={handleSubmitComplete}
           onBack={() => setCurrentScreen('video-upload')}
           onEditMetadata={() => setCurrentScreen('metadata-form')}
+          onLogout={handleLogout}
         />
       )}
 
@@ -357,6 +381,7 @@ export default function App() {
             setCurrentScreen('geo-location'); // Start edit flow from geo-location
           }}
           onBack={handleBackToDashboard}
+          onLogout={handleLogout}
         />
       )}
 

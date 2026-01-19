@@ -2,16 +2,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
-import { FileVideo, History, MapPin, Database, Plus, TrendingUp, Activity, Zap } from 'lucide-react';
+import { FileVideo, History, MapPin, Database, Plus, TrendingUp, Activity, Zap, LogOut } from 'lucide-react';
 import type { UserInfo } from '@/app/App';
 
 type DashboardScreenProps = {
   userInfo: UserInfo;
   onStartNewTest: () => void;
   onViewHistory: () => void;
+  onLogout?: () => void;
 };
 
-export function DashboardScreen({ userInfo, onStartNewTest, onViewHistory }: DashboardScreenProps) {
+export function DashboardScreen({ userInfo, onStartNewTest, onViewHistory, onLogout }: DashboardScreenProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
@@ -39,6 +40,12 @@ export function DashboardScreen({ userInfo, onStartNewTest, onViewHistory }: Das
                   {userInfo.userName.split(' ').map((n: string) => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
+              {onLogout && (
+                <Button variant="outline" size="sm" onClick={onLogout} className="flex items-center gap-2">
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              )}
             </div>
           </div>
         </div>

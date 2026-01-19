@@ -5,7 +5,7 @@ import { Progress } from '@/app/components/ui/progress';
 import { Separator } from '@/app/components/ui/separator';
 import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Send, FileVideo, MapPin, FileText, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, FileVideo, MapPin, FileText, Check, Loader2, LogOut } from 'lucide-react';
 import type { UserInfo, GeoLocation, MetadataForm } from '@/app/App';
 
 type ReviewSubmitScreenProps = {
@@ -18,6 +18,7 @@ type ReviewSubmitScreenProps = {
   onSubmitComplete: () => void;
   onBack: () => void;
   onEditMetadata: () => void;
+  onLogout?: () => void;
 };
 
 export function ReviewSubmitScreen({
@@ -29,7 +30,8 @@ export function ReviewSubmitScreen({
   videoFiles,
   onSubmitComplete,
   onBack,
-  onEditMetadata
+  onEditMetadata,
+  onLogout
 }: ReviewSubmitScreenProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -149,6 +151,12 @@ export function ReviewSubmitScreen({
                 <p className="text-sm text-gray-500">Verify all information before submitting</p>
               </div>
             </div>
+            {onLogout && (
+              <Button variant="outline" size="sm" onClick={onLogout} disabled={isSubmitting} className="flex items-center gap-2">
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
+            )}
           </div>
         </div>
       </header>

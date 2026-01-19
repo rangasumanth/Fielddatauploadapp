@@ -5,7 +5,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo, Upload, Pencil } from 'lucide-react';
+import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo, Upload, Pencil, LogOut } from 'lucide-react';
 import type { UserInfo, TestData } from '@/app/App';
 
 type UploadHistoryScreenProps = {
@@ -13,9 +13,10 @@ type UploadHistoryScreenProps = {
   refreshToken: number;
   onEditMetadata: (test: TestData) => void;
   onBack: () => void;
+  onLogout?: () => void;
 };
 
-export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, onBack }: UploadHistoryScreenProps) {
+export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, onBack, onLogout }: UploadHistoryScreenProps) {
   const [tests, setTests] = useState<TestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTest, setSelectedTest] = useState<TestData | null>(null);
@@ -302,6 +303,12 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {onLogout && (
+                <Button onClick={onLogout} variant="outline" size="sm" className="flex items-center gap-2">
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              )}
               <Button onClick={handleExportCSV} variant="outline" size="sm" className="flex items-center gap-2">
                 <Download className="w-4 h-4" />
                 Export CSV

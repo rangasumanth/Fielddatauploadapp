@@ -275,13 +275,13 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
                       <SelectValue placeholder="Select road type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2_local">2-Lane Roadway</SelectItem>
-                      <SelectItem value="3_local">3-lane Roadway</SelectItem>
-                      <SelectItem value="arterial">Multilane Arterial</SelectItem>
-                      <SelectItem value="freeway">Multilane Freeway</SelectItem>
+                      <SelectItem value="2_lane_roadway">2-Lane Roadway</SelectItem>
+                      <SelectItem value="3_lane_roadway">3-lane Roadway</SelectItem>
+                      <SelectItem value="multilane_arterial">Multilane Arterial</SelectItem>
+                      <SelectItem value="multilane_freeway">Multilane Freeway</SelectItem>
                       <SelectItem value="intersection">Intersection</SelectItem>
-                      <SelectItem value="2_highway">2-Lane Highway</SelectItem>
-                      <SelectItem value="3_highway">3-Lane Highway</SelectItem>
+                      <SelectItem value="2_lane_highway">2-Lane Highway</SelectItem>
+                      <SelectItem value="3_lane_highway">3-Lane Highway</SelectItem>
                       <SelectItem value="parking lot">Parking lot</SelectItem>
                     </SelectContent>
                   </Select>
@@ -457,6 +457,7 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
                       <SelectItem value="rear">Rear</SelectItem>
                       <SelectItem value="side">Side</SelectItem>
                       <SelectItem value="overhead">Overhead</SelectItem>
+                      <SelectItem value="overhead">Front/Rear</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -490,7 +491,7 @@ export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, 
                     id="firmware"
                     value={formData.firmware}
                     onChange={(e) => handleInputChange('firmware', e.target.value)}
-                    placeholder="e.g., v2.1.5"
+                    placeholder="e.g., v0.2552.11"
                   />
                 </div>
 

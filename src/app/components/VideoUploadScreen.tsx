@@ -200,8 +200,22 @@ export function VideoUploadScreen({ videoFiles, onUpload, onBack }: VideoUploadS
                     <div className="group border border-white/5 rounded bg-black/40 p-6 relative overflow-hidden hover:border-blue-500/30 transition-all duration-300" key={`${file.name}-${index}`}>
                       <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
                       <div className="flex items-start gap-6 relative z-10">
-                        <div className="p-4 bg-blue-500/10 rounded border border-blue-500/20">
-                          <FileVideo className="w-8 h-8 text-blue-500" />
+                        <div className="relative w-32 h-20 bg-black rounded border border-white/10 overflow-hidden flex-shrink-0 group-hover:border-blue-500/50 transition-colors">
+                          <video
+                            src={URL.createObjectURL(file)}
+                            className="w-full h-full object-cover"
+                            onMouseOver={e => (e.target as HTMLVideoElement).play()}
+                            onMouseOut={e => {
+                              const v = e.target as HTMLVideoElement;
+                              v.pause();
+                              v.currentTime = 0;
+                            }}
+                            muted
+                            loop
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-transparent transition-colors">
+                            <FileVideo className="w-6 h-6 text-blue-500/50 group-hover:text-blue-500 transition-colors" />
+                          </div>
                         </div>
 
                         <div className="flex-1 min-w-0">

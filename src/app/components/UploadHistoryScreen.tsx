@@ -9,6 +9,18 @@ import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo, Upload, Pencil, L
 import { AxonLogo } from '@/app/components/ui/AxonLogo';
 import type { UserInfo, TestData } from '@/app/App';
 
+type FormField = {
+  id: string;
+  section: string;
+  name: string;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'date' | 'switch' | 'textarea';
+  options: string[] | null;
+  required: boolean;
+  order_index: number;
+  is_system: boolean;
+};
+
 type UploadHistoryScreenProps = {
   userInfo: UserInfo;
   refreshToken: number;
@@ -28,7 +40,36 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
   const [pendingUploadTestId, setPendingUploadTestId] = useState<string | null>(null);
   const [uploadingTestId, setUploadingTestId] = useState<string | null>(null);
   const [deletingVideoKey, setDeletingVideoKey] = useState<string | null>(null);
+  const [fields, setFields] = useState<FormField[]>([]);
+  const [isLoadingFields, setIsLoadingFields] = useState(true);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    fetchFields();
+  }, []);
+
+  const fetchFields = async () => {
+    try {
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) return;
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/form_fields?select=*&order=order_index.asc`, {
+        headers: {
+          'apikey': publicAnonKey || '',
+          'Authorization': `Bearer ${publicAnonKey}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFields(data);
+      }
+    } catch (error) {
+      console.error('Error fetching fields:', error);
+    } finally {
+      setIsLoadingFields(false);
+    }
+  };
 
   useEffect(() => {
     loadTests();
@@ -554,38 +595,67 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                 </div>
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Metadata Cluster</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 pt-2">
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Observation Date</p>
-                    <p className="text-[11px] font-bold text-white uppercase">{selectedTest.metadata?.date}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Hardware ID</p>
-                    <p className="text-[11px] font-mono text-zinc-400 underline decoration-primary/20">{selectedTest.metadata?.deviceId}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Resource Class</p>
-                    <p className="text-[11px] font-bold text-white uppercase">{selectedTest.metadata?.deviceType}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Mission Cycle</p>
-                    <p className="text-[11px] font-bold text-white uppercase italic">{selectedTest.metadata?.testCycle}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Operational Zone</p>
-                    <p className="text-[11px] font-bold text-white uppercase">{selectedTest.metadata?.environment}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Roadway Topology</p>
-                    <p className="text-[11px] font-bold text-white uppercase">{selectedTest.metadata?.roadType}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Lanes</p>
-                    <p className="text-[11px] font-bold text-white">{selectedTest.metadata?.numberOfLanes || '-'}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Aux Power</p>
-                    <p className={`text-[11px] font-bold uppercase ${selectedTest.metadata?.externalBatteryPluggedIn ? 'text-primary' : 'text-zinc-600'}`}>{selectedTest.metadata?.externalBatteryPluggedIn ? 'Connected' : 'Offline'}</p>
-                  </div>
+                  {isLoadingFields ? (
+                    <div className="col-span-full py-6 flex flex-col items-center justify-center gap-3">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary/40" />
+                      <span className="text-[8px] font-black uppercase tracking-widest text-zinc-700">Synchronizing Manifest...</span>
+                    </div>
+                  ) : fields.length > 0 ? (
+                    fields.map(field => {
+                      const value = selectedTest.metadata[field.name];
+                      if (value === undefined || value === null || value === '') return null;
+
+                      return (
+                        <div key={field.id} className="space-y-1">
+                          <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">{field.label}</p>
+                          {field.type === 'switch' ? (
+                            <p className={`text-[11px] font-bold uppercase ${value ? 'text-primary' : 'text-zinc-600'}`}>
+                              {value ? 'Connected' : 'Offline'}
+                            </p>
+                          ) : (
+                            <p className={`text-[11px] font-bold uppercase ${field.name === 'deviceId' ? 'font-mono text-zinc-400 underline decoration-primary/20' : 'text-white'}`}>
+                              {String(value)}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Observation Date</p>
+                        <p className="text-[11px] font-bold text-white uppercase">{selectedTest.metadata?.date}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Hardware ID</p>
+                        <p className="text-[11px] font-mono text-zinc-400 underline decoration-primary/20">{selectedTest.metadata?.deviceId}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Resource Class</p>
+                        <p className="text-[11px] font-bold text-white uppercase">{selectedTest.metadata?.deviceType}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Mission Cycle</p>
+                        <p className="text-[11px] font-bold text-white uppercase italic">{selectedTest.metadata?.testCycle}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Operational Zone</p>
+                        <p className="text-[11px] font-bold text-white uppercase">{selectedTest.metadata?.environment}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Roadway Topology</p>
+                        <p className="text-[11px] font-bold text-white uppercase">{selectedTest.metadata?.roadType}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Lanes</p>
+                        <p className="text-[11px] font-bold text-white">{selectedTest.metadata?.numberOfLanes || '-'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-widest leading-none mb-1">Aux Power</p>
+                        <p className={`text-[11px] font-bold uppercase ${selectedTest.metadata?.externalBatteryPluggedIn ? 'text-primary' : 'text-zinc-600'}`}>{selectedTest.metadata?.externalBatteryPluggedIn ? 'Connected' : 'Offline'}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {selectedTest.metadata?.comments && (
@@ -605,6 +675,16 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                   {selectedTest.videos && selectedTest.videos.length > 0 ? (
                     selectedTest.videos.map((video: { fileName: string; url?: string }, index: number) => (
                       <div key={`${video.fileName}-${index}`} className="group p-5 bg-black/40 border border-white/5 rounded hover:border-blue-500/30 transition-all">
+                        {video.url && (
+                          <div className="mb-4 aspect-video bg-black rounded border border-white/5 overflow-hidden relative">
+                            <video
+                              src={video.url}
+                              className="w-full h-full object-contain"
+                              controls
+                              preload="metadata"
+                            />
+                          </div>
+                        )}
                         <div className="flex items-start justify-between gap-4">
                           <div className="space-y-1 flex-1">
                             <p className="text-[8px] text-zinc-700 font-black uppercase tracking-widest">Asset Segment {index + 1}</p>

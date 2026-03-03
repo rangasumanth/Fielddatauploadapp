@@ -9,6 +9,18 @@ import { ArrowLeft, Send, FileVideo, MapPin, FileText, Check, Loader2, LogOut } 
 import { AxonLogo } from '@/app/components/ui/AxonLogo';
 import type { UserInfo, GeoLocation, MetadataForm } from '@/app/App';
 
+type FormField = {
+  id: string;
+  section: string;
+  name: string;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'date' | 'switch' | 'textarea';
+  options: string[] | null;
+  required: boolean;
+  order_index: number;
+  is_system: boolean;
+};
+
 type ReviewSubmitScreenProps = {
   testId: string;
   sessionId: string;
@@ -37,6 +49,34 @@ export function ReviewSubmitScreen({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<string>('');
+  const [fields, setFields] = useState<FormField[]>([]);
+  const [isLoadingFields, setIsLoadingFields] = useState(true);
+
+  useState(() => {
+    const fetchFields = async () => {
+      try {
+        const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+        if (!supabaseUrl) return;
+
+        const response = await fetch(`${supabaseUrl}/rest/v1/form_fields?select=*&order=order_index.asc`, {
+          headers: {
+            'apikey': publicAnonKey || '',
+            'Authorization': `Bearer ${publicAnonKey}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setFields(data);
+        }
+      } catch (error) {
+        console.error('Error fetching fields:', error);
+      } finally {
+        setIsLoadingFields(false);
+      }
+    };
+    fetchFields();
+  });
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -268,36 +308,65 @@ export function ReviewSubmitScreen({
                 </CardHeader>
                 <CardContent className="pt-8">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-y-8 gap-x-6">
-                    <div className="space-y-1">
-                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Timestamp</p>
-                      <p className="text-xs font-bold text-white uppercase">{metadata.date}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Hardware ID</p>
-                      <p className="text-xs font-mono text-zinc-400">{metadata.deviceId}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Device Class</p>
-                      <p className="text-xs font-bold text-white uppercase">{metadata.deviceType}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Assignment</p>
-                      <p className="text-xs font-bold text-white uppercase italic">{metadata.testCycle}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Environment</p>
-                      <p className="text-xs font-bold text-white uppercase">{metadata.environment}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Roadway</p>
-                      <p className="text-xs font-bold text-white uppercase">{metadata.roadType}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Aux Power</p>
-                      <Badge className={`text-[8px] font-black uppercase tracking-widest rounded px-2 py-0.5 ${metadata.externalBatteryPluggedIn ? 'bg-primary text-black' : 'bg-white/5 text-zinc-600 border border-white/5'}`}>
-                        {metadata.externalBatteryPluggedIn ? 'Active' : 'Offline'}
-                      </Badge>
-                    </div>
+                    {isLoadingFields ? (
+                      <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary/40" />
+                        <span className="text-[8px] font-black uppercase tracking-widest text-zinc-700">Synchronizing Manifest Structure...</span>
+                      </div>
+                    ) : fields.length > 0 ? (
+                      fields.map(field => {
+                        const value = metadata[field.name];
+                        if (value === undefined || value === null || value === '') return null;
+
+                        return (
+                          <div key={field.id} className="space-y-1">
+                            <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">{field.label}</p>
+                            {field.type === 'switch' ? (
+                              <Badge className={`text-[8px] font-black uppercase tracking-widest rounded px-2 py-0.5 ${value ? 'bg-primary text-black' : 'bg-white/5 text-zinc-600 border border-white/5'}`}>
+                                {value ? 'Active' : 'Offline'}
+                              </Badge>
+                            ) : (
+                              <p className={`text-xs font-bold uppercase ${field.name === 'deviceId' ? 'font-mono text-zinc-400' : 'text-white'}`}>
+                                {String(value)}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Timestamp</p>
+                          <p className="text-xs font-bold text-white uppercase">{metadata.date}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Hardware ID</p>
+                          <p className="text-xs font-mono text-zinc-400">{metadata.deviceId}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Device Class</p>
+                          <p className="text-xs font-bold text-white uppercase">{metadata.deviceType}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Assignment</p>
+                          <p className="text-xs font-bold text-white uppercase italic">{metadata.testCycle}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Environment</p>
+                          <p className="text-xs font-bold text-white uppercase">{metadata.environment}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Roadway</p>
+                          <p className="text-xs font-bold text-white uppercase">{metadata.roadType}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Aux Power</p>
+                          <Badge className={`text-[8px] font-black uppercase tracking-widest rounded px-2 py-0.5 ${metadata.externalBatteryPluggedIn ? 'bg-primary text-black' : 'bg-white/5 text-zinc-600 border border-white/5'}`}>
+                            {metadata.externalBatteryPluggedIn ? 'Active' : 'Offline'}
+                          </Badge>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -318,6 +387,16 @@ export function ReviewSubmitScreen({
                     <div className="space-y-6">
                       {videoFiles.map((file, index) => (
                         <div key={`${file.name}-${index}`} className="p-4 bg-black/40 border border-white/5 rounded">
+                          <div className="mb-3 aspect-video bg-black rounded border border-white/5 overflow-hidden relative">
+                            <video
+                              src={URL.createObjectURL(file)}
+                              className="w-full h-full object-contain"
+                              onMouseOver={e => (e.target as HTMLVideoElement).play()}
+                              onMouseOut={e => (e.target as HTMLVideoElement).pause()}
+                              muted
+                              loop
+                            />
+                          </div>
                           <p className="text-[8px] text-zinc-600 font-black uppercase tracking-widest mb-2">Primary Footage [{index + 1}]</p>
                           <p className="text-xs font-bold text-white truncate italic mb-1">{file.name}</p>
                           <div className="flex justify-between items-center text-[9px] font-mono text-zinc-500">

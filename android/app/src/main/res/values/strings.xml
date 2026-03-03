@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Field Data Upload App</string>
+    <string name="title_activity_main">Field Data Upload App</string>
+    <string name="package_name">com.rangasumanth.fielddataupload</string>
+    <string name="custom_url_scheme">com.rangasumanth.fielddataupload</string>
+</resources>

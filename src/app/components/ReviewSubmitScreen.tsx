@@ -6,6 +6,7 @@ import { Separator } from '@/app/components/ui/separator';
 import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
 import { ArrowLeft, Send, FileVideo, MapPin, FileText, Check, Loader2, LogOut } from 'lucide-react';
+import { AxonLogo } from '@/app/components/ui/AxonLogo';
 import type { UserInfo, GeoLocation, MetadataForm } from '@/app/App';
 
 type ReviewSubmitScreenProps = {
@@ -40,7 +41,7 @@ export function ReviewSubmitScreen({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setUploadProgress(0);
-    
+
     try {
       const { functionsBase, functionsRoutePrefix, publicAnonKey } = await import('@/utils/supabase/info');
       if (!functionsBase) {
@@ -83,7 +84,7 @@ export function ReviewSubmitScreen({
         for (let i = 0; i < videoFiles.length; i += 1) {
           const file = videoFiles[i];
           setCurrentStep(`Uploading video ${i + 1} of ${totalUploads}...`);
-          
+
           const formData = new FormData();
           formData.append('file', file);
           formData.append('testId', testId);
@@ -110,7 +111,7 @@ export function ReviewSubmitScreen({
           await uploadResponse.json();
         }
       }
-      
+
       setCurrentStep('Finalizing submission...');
       setUploadProgress(100);
 
@@ -137,24 +138,27 @@ export function ReviewSubmitScreen({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#000000] text-white selection:bg-primary selection:text-black">
       {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-black border-b border-white/10 sticky top-0 z-30 backdrop-blur-md bg-opacity-80">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={onBack} disabled={isSubmitting}>
+            <div className="flex items-center gap-4 animate-slide-in-right">
+              <Button variant="ghost" size="icon" onClick={onBack} disabled={isSubmitting} className="hover:bg-white/5 text-zinc-400">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Review & Submit</h1>
-                <p className="text-sm text-gray-500">Verify all information before submitting</p>
-              </div>
+              <AxonLogo size={32} color="var(--primary)" />
             </div>
             {onLogout && (
-              <Button variant="outline" size="sm" onClick={onLogout} disabled={isSubmitting} className="flex items-center gap-2">
-                <LogOut className="w-4 h-4" />
-                Logout
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onLogout}
+                disabled={isSubmitting}
+                className="border-white/10 text-zinc-500 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-[9px] h-9 px-4"
+              >
+                <LogOut className="w-3.5 h-3.5 mr-2" />
+                Terminate Session
               </Button>
             )}
           </div>
@@ -162,206 +166,236 @@ export function ReviewSubmitScreen({
       </header>
 
       {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="space-y-8">
           {/* Upload Progress */}
           {isSubmitting && (
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="pt-6">
-                <div className="space-y-3">
+            <Card className="border border-blue-500/30 bg-blue-500/5 backdrop-blur-xl relative overflow-hidden animate-pulse-slow">
+              <div className="absolute top-0 left-0 w-full h-0.5 bg-blue-500/20" />
+              <CardContent className="pt-8 pb-8">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                      <span className="font-medium text-blue-900">{currentStep}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-blue-500/20 rounded">
+                        <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 block mb-1">Active Pipeline</span>
+                        <span className="text-sm font-bold text-white uppercase italic">{currentStep}</span>
+                      </div>
                     </div>
-                    <span className="text-sm font-medium text-blue-900">{uploadProgress}%</span>
+                    <span className="text-lg font-black text-blue-400 font-mono tracking-tighter">{uploadProgress}%</span>
                   </div>
-                  <Progress value={uploadProgress} className="h-2" />
+                  <Progress value={uploadProgress} className="h-1.5 bg-white/5" />
+                  <div className="flex justify-between items-center text-[8px] text-zinc-600 font-black uppercase tracking-widest pt-2">
+                    <span>Target: Cloud Evidence Node</span>
+                    <span>Status: Transmitting...</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* User Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
-                User Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Field Tester</p>
-                <p className="font-medium">{userInfo.userName}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium">{userInfo.email}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Geo-Location */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-blue-600" />
-                Geo-Location Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Location</p>
-                <p className="font-medium">{geoLocation.city}, {geoLocation.state}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Coordinates</p>
-                <p className="font-medium text-sm">
-                  {geoLocation.latitude.toFixed(4)}, {geoLocation.longitude.toFixed(4)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Accuracy</p>
-                <p className="font-medium">±{geoLocation.accuracy.toFixed(2)}m</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Metadata Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
-                Metadata Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-                <div>
-                  <p className="text-sm text-gray-500">Date</p>
-                  <p className="font-medium">{metadata.date}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Device ID</p>
-                  <p className="font-medium">{metadata.deviceId}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Device Type</p>
-                  <p className="font-medium">{metadata.deviceType}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Test Cycle</p>
-                  <p className="font-medium">{metadata.testCycle}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Environment</p>
-                  <p className="font-medium capitalize">{metadata.environment}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Road Type</p>
-                  <p className="font-medium capitalize">{metadata.roadType}</p>
-                </div>
-                {metadata.trafficDensity && (
-                  <div>
-                    <p className="text-sm text-gray-500">Traffic Density</p>
-                    <p className="font-medium capitalize">{metadata.trafficDensity}</p>
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {/* User Information */}
+              <Card className="shadow-2xl border border-white/10 bg-[#121212] relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-zinc-700" />
+                <CardHeader className="pb-6 border-b border-white/5">
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 bg-zinc-700 rounded-full" />
+                    Agent Credentials
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-8 pt-8">
+                  <div className="space-y-1">
+                    <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Designation</p>
+                    <p className="text-sm font-bold text-white uppercase italic">{userInfo.userName}</p>
                   </div>
-                )}
-                {metadata.lighting && (
-                  <div>
-                    <p className="text-sm text-gray-500">Lighting</p>
-                    <p className="font-medium capitalize">{metadata.lighting}</p>
+                  <div className="space-y-1">
+                    <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Comm Link</p>
+                    <p className="text-sm font-bold text-zinc-400 lowercase">{userInfo.email}</p>
                   </div>
-                )}
-                {metadata.weatherCondition && (
-                  <div>
-                    <p className="text-sm text-gray-500">Weather</p>
-                    <p className="font-medium capitalize">{metadata.weatherCondition}</p>
+                </CardContent>
+              </Card>
+
+              {/* Geo-Location */}
+              <Card className="shadow-2xl border border-white/10 bg-[#121212] relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+                <CardHeader className="pb-6 border-b border-white/5">
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-400 flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                    Spatial Telemetry
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-3 gap-8 pt-8">
+                  <div className="space-y-1">
+                    <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Sector</p>
+                    <p className="text-sm font-bold text-white uppercase">{geoLocation.city}, {geoLocation.state}</p>
                   </div>
-                )}
-                <div>
-                  <p className="text-sm text-gray-500">External Battery</p>
-                  <Badge variant={metadata.externalBatteryPluggedIn ? "default" : "secondary"}>
-                    {metadata.externalBatteryPluggedIn ? 'Connected' : 'Not Connected'}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Video Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileVideo className="w-5 h-5 text-blue-600" />
-                Video Details
-              </CardTitle>
-            </CardHeader>
-            {videoFiles.length > 0 ? (
-              <CardContent className="grid md:grid-cols-3 gap-4">
-                {videoFiles.map((file, index) => (
-                  <div key={`${file.name}-${index}`}>
-                    <p className="text-sm text-gray-500">File</p>
-                    <p className="font-medium truncate">{file.name}</p>
-                    <p className="text-xs text-gray-400">{formatFileSize(file.size)} - {file.type}</p>
+                  <div className="space-y-1">
+                    <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Global Coordinates</p>
+                    <p className="text-sm font-mono text-zinc-400">
+                      {geoLocation.latitude.toFixed(6)}°N, {geoLocation.longitude.toFixed(6)}°E
+                    </p>
                   </div>
-                ))}
-              </CardContent>
-            ) : (
-              <CardContent>
-                <p className="text-sm text-gray-500">No video selected yet.</p>
-                <p className="text-sm text-gray-400">You can upload a video later from Upload History.</p>
-              </CardContent>
-            )}
-          </Card>
+                  <div className="space-y-1">
+                    <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Variance</p>
+                    <p className="text-sm font-bold text-blue-500">±{geoLocation.accuracy.toFixed(2)}M</p>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Test ID */}
-          <Card className="bg-gray-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Test ID</p>
-                  <p className="font-mono text-sm font-medium">{testId}</p>
-                </div>
-                <Badge>Ready to Submit</Badge>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Metadata Summary */}
+              <Card className="shadow-2xl border border-white/10 bg-[#121212] relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                <CardHeader className="pb-6 border-b border-white/5">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                      Protocol Manifest
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onEditMetadata}
+                      disabled={isSubmitting}
+                      className="text-[8px] font-black uppercase tracking-widest text-zinc-500 hover:text-white"
+                    >
+                      Override Data
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-8">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-y-8 gap-x-6">
+                    <div className="space-y-1">
+                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Timestamp</p>
+                      <p className="text-xs font-bold text-white uppercase">{metadata.date}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Hardware ID</p>
+                      <p className="text-xs font-mono text-zinc-400">{metadata.deviceId}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Device Class</p>
+                      <p className="text-xs font-bold text-white uppercase">{metadata.deviceType}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Assignment</p>
+                      <p className="text-xs font-bold text-white uppercase italic">{metadata.testCycle}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Environment</p>
+                      <p className="text-xs font-bold text-white uppercase">{metadata.environment}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Roadway</p>
+                      <p className="text-xs font-bold text-white uppercase">{metadata.roadType}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Aux Power</p>
+                      <Badge className={`text-[8px] font-black uppercase tracking-widest rounded px-2 py-0.5 ${metadata.externalBatteryPluggedIn ? 'bg-primary text-black' : 'bg-white/5 text-zinc-600 border border-white/5'}`}>
+                        {metadata.externalBatteryPluggedIn ? 'Active' : 'Offline'}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 justify-end sticky bottom-0 bg-white p-4 border-t rounded-lg">
-            <Button variant="outline" onClick={onEditMetadata} disabled={isSubmitting}>
-              Edit Metadata
-            </Button>
-            <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
-              Back to Video
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex items-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  Submit Test
-                </>
-              )}
-            </Button>
+            <div className="space-y-8">
+              {/* Video Details */}
+              <Card className="shadow-2xl border border-white/10 bg-[#121212] relative overflow-hidden h-full flex flex-col">
+                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+                <CardHeader className="pb-6 border-b border-white/5">
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-400 flex items-center gap-3">
+                    <FileVideo className="w-3.5 h-3.5" />
+                    Asset Inventory
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-8 flex-1">
+                  {videoFiles.length > 0 ? (
+                    <div className="space-y-6">
+                      {videoFiles.map((file, index) => (
+                        <div key={`${file.name}-${index}`} className="p-4 bg-black/40 border border-white/5 rounded">
+                          <p className="text-[8px] text-zinc-600 font-black uppercase tracking-widest mb-2">Primary Footage [{index + 1}]</p>
+                          <p className="text-xs font-bold text-white truncate italic mb-1">{file.name}</p>
+                          <div className="flex justify-between items-center text-[9px] font-mono text-zinc-500">
+                            <span>{formatFileSize(file.size)}</span>
+                            <span>{file.type ? file.type.split('/')[1].toUpperCase() : 'RAW'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 border border-dashed border-white/5 rounded">
+                      <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Waiting for Assets</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Unique ID Card */}
+              <Card className="bg-black/40 border border-white/5 border-dashed">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Sequence ID</span>
+                      <Badge className="bg-white/5 text-zinc-400 text-[8px] font-black uppercase border-white/5">Locked</Badge>
+                    </div>
+                    <p className="text-xs font-mono text-white tracking-widest bg-black p-3 rounded border border-white/5 text-center truncate">{testId}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          {/* Warning Notice */}
+          {/* Action Footer */}
+          <div className="sticky bottom-8 bg-black/80 backdrop-blur-xl border border-white/10 p-6 rounded relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+            <div className="flex flex-col sm:flex-row gap-6 justify-between items-center">
+              <div className="flex flex-col gap-1 items-center sm:items-start">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Validation Status</p>
+                <p className="text-xs font-bold text-primary uppercase italic">All protocols ready for transmission</p>
+              </div>
+
+              <div className="flex gap-4 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={onBack}
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-initial border-white/10 text-zinc-400 font-black uppercase tracking-widest text-[10px] h-12 px-8 hover:bg-white/5"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-initial bg-primary hover:bg-white text-black font-black uppercase tracking-widest text-[11px] h-12 px-12 shadow-[0_0_25px_rgba(223,255,0,0.3)] flex items-center gap-3 transition-all duration-300"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      In Flight
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Commit Mission
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Legal/Warning Notice */}
           {!isSubmitting && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-900">
-                <strong>⚠️ Important:</strong> Please review all information carefully before submitting.
-                Once submitted, the test data will be permanently stored and cannot be edited.
+            <div className="text-center py-6">
+              <p className="text-[8px] text-zinc-600 uppercase font-black tracking-widest leading-relaxed max-w-2xl mx-auto">
+                Confidentiality Notice: By committing this mission, you certify that the evidence captured conforms to
+                Axon digital integrity standards. Data once transmitted is non-mutable and permanently indexed
+                in the secure asset repository.
               </p>
             </div>
           )}

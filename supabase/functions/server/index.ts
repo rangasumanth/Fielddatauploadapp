@@ -4,7 +4,7 @@ import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import type { Context } from "npm:hono";
-const app = new Hono().basePath('/server');
+const app = new Hono();
 
 // Initialize Supabase client
 const supabase = createClient(

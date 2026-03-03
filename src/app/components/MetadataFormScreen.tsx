@@ -5,12 +5,22 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Switch } from '@/app/components/ui/switch';
-import { Separator } from '@/app/components/ui/separator';
-import { Progress } from '@/app/components/ui/progress';
-import { Badge } from '@/app/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Calendar, User, MapPin, Clock, Car, Cloud, Camera, Cpu, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, User, MapPin, Car, Cloud, Camera, FileText, Loader2 } from 'lucide-react';
+import { AxonLogo } from '@/app/components/ui/AxonLogo';
 import type { UserInfo, GeoLocation, MetadataForm } from '@/app/App';
+
+type FormField = {
+  id: string;
+  section: string;
+  name: string;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'date' | 'switch' | 'textarea';
+  options: string[] | null;
+  required: boolean;
+  order_index: number;
+  is_system: boolean;
+};
 
 type MetadataFormScreenProps = {
   userInfo: UserInfo;
@@ -21,520 +31,243 @@ type MetadataFormScreenProps = {
   onBack: () => void;
 };
 
-const buildEmptyMetadata = (): MetadataForm => ({
-  date: new Date().toISOString().split('T')[0],
-  deviceId: '',
-  deviceType: '',
-  testCycle: '',
-  location: '',
-  environment: '',
-  timeStart: '',
-  timeEnd: '',
-  roadType: '',
-  postedSpeedLimit: '',
-  numberOfLanes: '',
-  trafficDensity: '',
-  roadHeading: '',
-  cameraHeading: '',
-  lighting: '',
-  weatherCondition: '',
-  severity: '',
-  measuredDistance: '',
-  mountHeight: '',
-  pitchAngle: '',
-  vehicleCaptureView: '',
-  externalBatteryPluggedIn: false,
-  firmware: '',
-  varVersion: ''
-});
+const buildEmptyMetadata = (fields: FormField[]): MetadataForm => {
+  const now = new Date();
+  const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  const initial: any = {
+    date: localDate,
+  };
+
+  fields.forEach(f => {
+    if (f.name === 'date') return;
+    initial[f.name] = f.type === 'switch' ? false : '';
+  });
+
+  return initial as MetadataForm;
+};
 
 export function MetadataFormScreen({ userInfo, geoLocation, metadata, onSubmit, onDraftChange, onBack }: MetadataFormScreenProps) {
-  const [formData, setFormData] = useState<MetadataForm>(() => metadata ?? buildEmptyMetadata());
+  const [fields, setFields] = useState<FormField[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [formData, setFormData] = useState<MetadataForm>(() => metadata ?? ({} as MetadataForm));
 
   useEffect(() => {
-    setFormData(metadata ?? buildEmptyMetadata());
-  }, [metadata]);
+    fetchConfig();
+  }, []);
 
-  const handleInputChange = (field: keyof MetadataForm, value: string | boolean) => {
+  const fetchConfig = async () => {
+    try {
+      setIsLoading(true);
+      const { supabaseUrl, publicAnonKey } = await import('@/utils/supabase/info');
+      if (!supabaseUrl) throw new Error('Missing Supabase URL');
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/form_fields?select=*&order=order_index.asc`, {
+        headers: {
+          'apikey': publicAnonKey || '',
+          'Authorization': `Bearer ${publicAnonKey}`
+        }
+      });
+
+      if (response.ok) {
+        const data: FormField[] = await response.json();
+        setFields(data);
+        if (!metadata) {
+          setFormData(buildEmptyMetadata(data));
+        } else {
+          setFormData(metadata);
+        }
+      } else {
+        throw new Error('Failed to fetch form config');
+      }
+    } catch (error) {
+      console.error('Error fetching form config:', error);
+      toast.error('Using offline form fallback');
+      // Fallback or handle error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => {
       const next = { ...prev, [field]: value };
-      onDraftChange?.(next);
-      return next;
+      onDraftChange?.(next as MetadataForm);
+      return next as MetadataForm;
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
-    const requiredFields = ['deviceId', 'deviceType', 'testCycle', 'environment', 'roadType'];
-    const missingFields = requiredFields.filter(field => !formData[field as keyof MetadataForm]);
+    const missingFields = fields
+      .filter(f => f.required && !formData[f.name as keyof MetadataForm])
+      .map(f => f.label);
 
     if (missingFields.length > 0) {
-      toast.error('Please fill in all required fields');
+      toast.error(`Required: ${missingFields.join(', ')}`);
       return;
     }
 
     onSubmit(formData);
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Syncing Parameters...</p>
+      </div>
+    );
+  }
+
+  const sections = Array.from(new Set(fields.map(f => f.section)));
+
+  const getSectionIcon = (section: string) => {
+    switch (section) {
+      case 'Basic Information': return <User className="w-4 h-4 text-primary" />;
+      case 'Location Details': return <MapPin className="w-4 h-4 text-[#3B82F6]" />;
+      case 'Road & Traffic': return <Car className="w-4 h-4 text-primary" />;
+      case 'Ambient Conditions': return <Cloud className="w-4 h-4 text-[#8B5CF6]" />;
+      case 'Camera Optomechanics': return <Camera className="w-4 h-4 text-primary" />;
+      case 'Field Observations': return <FileText className="w-4 h-4 text-zinc-400" />;
+      default: return <FileText className="w-4 h-4 text-primary" />;
+    }
+  };
+
+  const getSectionColor = (section: string) => {
+    switch (section) {
+      case 'Location Details': return 'bg-[#3B82F6]';
+      case 'Ambient Conditions': return 'bg-[#8B5CF6]';
+      case 'Field Observations': return 'bg-zinc-700';
+      default: return 'bg-primary';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={onBack}>
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Metadata Entry</h1>
-                <p className="text-sm text-gray-500">{userInfo.userName}</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#000000] text-white selection:bg-primary selection:text-black">
+      <header className="bg-black border-b border-white/10 sticky top-0 z-30 backdrop-blur-md bg-opacity-80">
+        <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-4 animate-slide-in-right">
+            <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-white/5 text-zinc-400">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <AxonLogo size={32} color="var(--primary)" />
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-10">
         <form onSubmit={handleSubmit}>
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>Core test identification details</CardDescription>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
-                    required
-                  />
-                </div>
+          <div className="space-y-8 pb-32">
+            <div className="mb-10 animate-slide-in-bottom">
+              <h2 className="text-3xl font-black tracking-tighter uppercase italic text-white leading-none mb-3">
+                Protocol Parameters
+              </h2>
+              <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">
+                Complete all mandatory fields for evidence integrity.
+              </p>
+            </div>
 
-                <div className="space-y-2">
-                  <Label>Field Tester</Label>
-                  <Input value={userInfo.userName} readOnly className="bg-gray-50" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="deviceId">Device ID *</Label>
-                  <Select value={formData.deviceId} onValueChange={(value) => handleInputChange('deviceId', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select device ID" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="D20A03670">D20A03670</SelectItem>
-                      <SelectItem value="D20A04600">D20A04600</SelectItem>
-                      <SelectItem value="D20A03710">D20A03710</SelectItem>
-                      <SelectItem value="D20A03700">D20A03700</SelectItem>
-                      <SelectItem value="D20A06831">D20A06831</SelectItem>
-                      <SelectItem value="D20A05310">D20A05310</SelectItem>
-                      <SelectItem value="D20A00440">D20A00440</SelectItem>
-                      <SelectItem value="D20A06821">D20A06821</SelectItem>
-                      <SelectItem value="D20A07941">D20A07941</SelectItem>
-                      <SelectItem value="D20A07821">D20A07821</SelectItem>
-                      <SelectItem value="D20A07681">D20A07681</SelectItem>
-                      <SelectItem value="D20A04690">D20A04690</SelectItem>
-                      <SelectItem value="D20A04780">D20A04780</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="deviceType">Device Type *</Label>
-                  <Select value={formData.deviceType} onValueChange={(value) => handleInputChange('deviceType', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select device type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pre-EVT">Pre-EVT</SelectItem>
-                      <SelectItem value="EVT">EVT</SelectItem>
-                      <SelectItem value="DVT">DVT</SelectItem>
-                      <SelectItem value="RING">RING</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="testCycle">Test Cycle *</Label>
-                  <Select value={formData.testCycle} onValueChange={(value) => handleInputChange('testCycle', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select test cycle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="GA 2 - RC1">GA 2 - RC1</SelectItem>
-                      <SelectItem value="GA 2 - RC2">GA 2 - RC2</SelectItem>
-                      <SelectItem value="GA 2 - RC3">GA 2 - RC3</SelectItem>
-                      <SelectItem value="GA 2 - RC4">GA 2 - RC4</SelectItem>
-                      <SelectItem value="GA 2 - RC5">GA 2 - RC5</SelectItem>
-                      <SelectItem value="GA 2 - RC6">GA 2 - RC6</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Location Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Location Details</CardTitle>
-                <CardDescription>Geographic and site information</CardDescription>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>City (locked)</Label>
-                  <Input value={geoLocation.city} readOnly className="bg-gray-100" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>State Collected (locked)</Label>
-                  <Input value={geoLocation.state} readOnly className="bg-gray-100" />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="location">Location / Landmark</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="e.g., Main St & 5th Ave intersection"
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="environment">Environment *</Label>
-                  <Select value={formData.environment} onValueChange={(value) => handleInputChange('environment', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select environment type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="city">City</SelectItem>
-                      <SelectItem value="urban">Urban</SelectItem>
-                      <SelectItem value="suburban">Suburban</SelectItem>
-                      <SelectItem value="rural">Rural</SelectItem>
-                      <SelectItem value="highway">Highway</SelectItem>
-                      <SelectItem value="residential">Residential</SelectItem>
-                      <SelectItem value="industrial">Industrial</SelectItem>
-                      <SelectItem value="mountainous">Mountainous</SelectItem>
-                      <SelectItem value="coastal">Coastal</SelectItem>
-                      <SelectItem value="transportation_hub">Transportation Hub</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Time */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Time</CardTitle>
-                <CardDescription>Test duration information</CardDescription>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="timeStart">Time Start</Label>
-                  <Input
-                    id="timeStart"
-                    type="time"
-                    value={formData.timeStart}
-                    onChange={(e) => handleInputChange('timeStart', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="timeEnd">Time End</Label>
-                  <Input
-                    id="timeEnd"
-                    type="time"
-                    value={formData.timeEnd}
-                    onChange={(e) => handleInputChange('timeEnd', e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Road & Traffic */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Road & Traffic</CardTitle>
-                <CardDescription>Road configuration and traffic conditions</CardDescription>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="roadType">Road Type *</Label>
-                  <Select value={formData.roadType} onValueChange={(value) => handleInputChange('roadType', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select road type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2_lane_roadway">2-Lane Roadway</SelectItem>
-                      <SelectItem value="3_lane_roadway">3-lane Roadway</SelectItem>
-                      <SelectItem value="multilane_arterial">Multilane Arterial</SelectItem>
-                      <SelectItem value="multilane_freeway">Multilane Freeway</SelectItem>
-                      <SelectItem value="intersection">Intersection</SelectItem>
-                      <SelectItem value="2_lane_highway">2-Lane Highway</SelectItem>
-                      <SelectItem value="3_lane_highway">3-Lane Highway</SelectItem>
-                      <SelectItem value="parking lot">Parking lot</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="postedSpeedLimit">Posted Speed Limit (mph)</Label>
-                  <Input
-                    id="postedSpeedLimit"
-                    type="number"
-                    value={formData.postedSpeedLimit}
-                    onChange={(e) => handleInputChange('postedSpeedLimit', e.target.value)}
-                    placeholder="e.g., 35"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="numberOfLanes">Number of Lanes Counted</Label>
-                  <Input
-                    id="numberOfLanes"
-                    type="number"
-                    value={formData.numberOfLanes}
-                    onChange={(e) => handleInputChange('numberOfLanes', e.target.value)}
-                    placeholder="e.g., 2"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="trafficDensity">Traffic Density</Label>
-                  <Select value={formData.trafficDensity} onValueChange={(value) => handleInputChange('trafficDensity', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select density" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="moderate">Moderate</SelectItem>
-                      <SelectItem value="heavy">Heavy</SelectItem>
-                      <SelectItem value="congested">Congested</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="roadHeading">Road Heading</Label>
-                  <Input
-                    id="roadHeading"
-                    value={formData.roadHeading}
-                    onChange={(e) => handleInputChange('roadHeading', e.target.value)}
-                    placeholder="e.g., northbound"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cameraHeading">Camera Heading</Label>
-                  <Input
-                    id="cameraHeading"
-                    value={formData.cameraHeading}
-                    onChange={(e) => handleInputChange('cameraHeading', e.target.value)}
-                    placeholder="e.g., westbound"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Conditions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Conditions</CardTitle>
-                <CardDescription>Environmental and weather conditions</CardDescription>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="lighting">Lighting</Label>
-                  <Select value={formData.lighting} onValueChange={(value) => handleInputChange('lighting', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select lighting" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="night_ir">Night (IR)</SelectItem>
-                      <SelectItem value="day">Day</SelectItem>
-                      <SelectItem value="transient">Transient</SelectItem>
-                      <SelectItem value="night_no_ir">Night (no IR)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="weatherCondition">Weather Condition</Label>
-                  <Select value={formData.weatherCondition} onValueChange={(value) => handleInputChange('weatherCondition', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select weather" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="clear">Clear</SelectItem>
-                      <SelectItem value="cloudy">Cloudy</SelectItem>
-                      <SelectItem value="rain">Rain</SelectItem>
-                      <SelectItem value="snow">Snow</SelectItem>
-                      <SelectItem value="fog">Fog</SelectItem>
-                      <SelectItem value="sleet">Sleet</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="severity">Severity</Label>
-                  <Select value={formData.severity} onValueChange={(value) => handleInputChange('severity', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select severity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="moderate">Moderate</SelectItem>
-                      <SelectItem value="heavy">Heavy</SelectItem>
-                      <SelectItem value="severe">Severe</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Camera & Setup */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Camera & Setup</CardTitle>
-                <CardDescription>Physical camera installation details</CardDescription>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="measuredDistance">Measured Distance to Road (m)</Label>
-                  <Input
-                    id="measuredDistance"
-                    type="number"
-                    step="0.1"
-                    value={formData.measuredDistance}
-                    onChange={(e) => handleInputChange('measuredDistance', e.target.value)}
-                    placeholder="e.g., 15.5"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="mountHeight">Mount Height (m)</Label>
-                  <Input
-                    id="mountHeight"
-                    type="number"
-                    step="0.1"
-                    value={formData.mountHeight}
-                    onChange={(e) => handleInputChange('mountHeight', e.target.value)}
-                    placeholder="e.g., 3.2"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="pitchAngle">Pitch Angle (degrees)</Label>
-                  <Input
-                    id="pitchAngle"
-                    type="number"
-                    step="0.1"
-                    value={formData.pitchAngle}
-                    onChange={(e) => handleInputChange('pitchAngle', e.target.value)}
-                    placeholder="e.g., 25.0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="vehicleCaptureView">Vehicle Capture View</Label>
-                  <Select value={formData.vehicleCaptureView} onValueChange={(value) => handleInputChange('vehicleCaptureView', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select view" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="front">Front</SelectItem>
-                      <SelectItem value="rear">Rear</SelectItem>
-                      <SelectItem value="side">Side</SelectItem>
-                      <SelectItem value="overhead">Overhead</SelectItem>
-                      <SelectItem value="overhead">Front/Rear</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
+            {sections.map(section => (
+              <Card key={section} className="shadow-2xl border border-white/10 bg-[#121212] backdrop-blur-xl relative overflow-hidden">
+                <div className={`absolute top-0 left-0 w-1 h-full ${getSectionColor(section)}`} />
+                <CardHeader className="pb-6 border-b border-white/5">
+                  <div className="flex items-center gap-3">
+                    {getSectionIcon(section)}
                     <div>
-                      <Label htmlFor="externalBattery">External Battery Plugged In</Label>
-                      <p className="text-sm text-gray-500">Is external power connected?</p>
+                      <CardTitle className="text-xs font-black uppercase tracking-widest text-white">{section}</CardTitle>
+                      <CardDescription className="text-[9px] text-zinc-600 uppercase font-bold">Parameters set</CardDescription>
                     </div>
-                    <Switch
-                      id="externalBattery"
-                      checked={formData.externalBatteryPluggedIn}
-                      onCheckedChange={(checked) => handleInputChange('externalBatteryPluggedIn', checked)}
-                    />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
+                  {fields.filter(f => f.section === section).map(field => (
+                    <div key={field.id} className={`space-y-3 ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}>
+                      <Label htmlFor={field.name} className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                        {field.label} {field.required && '*'}
+                      </Label>
 
-            {/* System Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>System Information</CardTitle>
-                <CardDescription>Software and firmware versions</CardDescription>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firmware">Firmware</Label>
-                  <Input
-                    id="firmware"
-                    value={formData.firmware}
-                    onChange={(e) => handleInputChange('firmware', e.target.value)}
-                    placeholder="e.g., v0.2552.11"
-                  />
-                </div>
+                      {field.type === 'select' ? (
+                        <Select
+                          value={String(formData[field.name as keyof MetadataForm] || '')}
+                          onValueChange={(val: string) => handleInputChange(field.name, val)}
+                        >
+                          <SelectTrigger className="bg-black/40 border-white/5 text-white font-bold h-11 focus:ring-primary">
+                            <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#121212] border-white/10 text-white">
+                            {field.options?.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : field.type === 'switch' ? (
+                        <div className="flex items-center justify-between p-3 bg-black/20 border border-white/5 rounded h-11">
+                          <span className="text-[9px] text-zinc-600 uppercase font-bold">Enabled</span>
+                          <Switch
+                            id={field.name}
+                            checked={Boolean(formData[field.name as keyof MetadataForm])}
+                            onCheckedChange={(checked: boolean) => handleInputChange(field.name, checked)}
+                            className="data-[state=checked]:bg-primary"
+                          />
+                        </div>
+                      ) : field.type === 'textarea' ? (
+                        <textarea
+                          id={field.name}
+                          value={String(formData[field.name as keyof MetadataForm] || '')}
+                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange(field.name, e.target.value)}
+                          className="flex min-h-[100px] w-full rounded border border-white/5 bg-black/40 px-4 py-3 text-sm text-white font-bold focus:ring-1 focus:ring-primary placeholder:text-zinc-800"
+                          placeholder={`Enter ${field.label.toLowerCase()}...`}
+                        />
+                      ) : (
+                        <Input
+                          id={field.name}
+                          type={field.type}
+                          value={String(formData[field.name as keyof MetadataForm] || '')}
+                          onChange={(e) => handleInputChange(field.name, e.target.value)}
+                          required={field.required}
+                          className="bg-black/40 border-white/5 text-white font-bold h-11 focus:ring-primary"
+                        />
+                      )}
+                    </div>
+                  ))}
 
-                <div className="space-y-2">
-                  <Label htmlFor="varVersion">VAR Version</Label>
-                  <Input
-                    id="varVersion"
-                    value={formData.varVersion}
-                    onChange={(e) => handleInputChange('varVersion', e.target.value)}
-                    placeholder="e.g., VAR-3.0.2"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                  {section === 'Basic Information' && (
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Field Tester</Label>
+                      <Input value={userInfo.userName} readOnly className="bg-black/20 border-white/5 text-zinc-400 font-bold h-11 cursor-not-allowed" />
+                    </div>
+                  )}
 
-            {/* Additional Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Additional Information</CardTitle>
-                <CardDescription>Optional comments or notes</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="comments">Comments</Label>
-                  <textarea
-                    id="comments"
-                    value={formData.comments || ''}
-                    onChange={(e) => handleInputChange('comments', e.target.value)}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Enter any additional notes about this test condition..."
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                  {section === 'Location Details' && (
+                    <>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Sector (City)</Label>
+                        <Input value={geoLocation.city} readOnly className="bg-black/20 border-white/5 text-zinc-500 font-mono text-[10px] tracking-wider h-11 cursor-not-allowed" />
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Region (State)</Label>
+                        <Input value={geoLocation.state} readOnly className="bg-black/20 border-white/5 text-zinc-500 font-mono text-[10px] tracking-wider h-11 cursor-not-allowed" />
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            {/* Submit Buttons */}
-            <div className="flex gap-3 justify-end sticky bottom-0 bg-white p-4 border-t">
-              <Button type="button" variant="outline" onClick={onBack}>
+          <div className="fixed bottom-0 left-0 right-0 bg-[#000000]/90 border-t border-white/10 p-5 backdrop-blur-md z-40">
+            <div className="max-w-5xl mx-auto flex gap-4 justify-between items-center">
+              <Button type="button" variant="outline" onClick={onBack} className="text-[10px] font-black uppercase tracking-widest border-white/10 h-11 px-8">
                 Back
               </Button>
-              <Button type="submit" className="flex items-center gap-2">
+              <Button
+                type="submit"
+                className="bg-primary hover:bg-white text-black font-black uppercase tracking-widest text-[10px] h-11 px-10 shadow-[0_0_20px_rgba(223,255,0,0.3)] flex items-center gap-3"
+              >
                 <Save className="w-4 h-4" />
-                Save & Continue
+                Commit Protocol
               </Button>
             </div>
           </div>

@@ -1,0 +1,16 @@
+{
+    "short_name": "FieldData",
+    "name": "Field Data Upload App",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "1024x1024",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#0a192f",
+    "background_color": "#0a192f"
+}

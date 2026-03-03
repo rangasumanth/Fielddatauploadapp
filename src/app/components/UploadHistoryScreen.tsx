@@ -5,7 +5,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo, Upload, Pencil, LogOut } from 'lucide-react';
+import { ArrowLeft, Eye, Trash2, Download, Loader2, FileVideo, Upload, Pencil, LogOut, FileText } from 'lucide-react';
 import { AxonLogo } from '@/app/components/ui/AxonLogo';
 import type { UserInfo, TestData } from '@/app/App';
 
@@ -385,9 +385,9 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
           <CardHeader className="pb-8 border-b border-white/5 bg-black/20">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Asset Manifest</CardTitle>
+                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Evidence Hub</CardTitle>
                 <CardDescription className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mt-1">
-                  {tests.length} Recorded Entries
+                  {tests.length} Transmitted Records
                 </CardDescription>
               </div>
               <div className="flex gap-2">
@@ -468,7 +468,7 @@ export function UploadHistoryScreen({ userInfo, refreshToken, onEditMetadata, on
                                 size="icon"
                                 onClick={() => handleViewDetails(test)}
                                 className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-white/5"
-                                title="Analyze details"
+                                title="Preview evidence"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </Button>
